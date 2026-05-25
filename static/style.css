@@ -8,6 +8,8 @@
     --primary-color: #FF6B6B;
     --secondary-color: #4ECDC4;
     --accent-color: #FFE66D;
+    --success-color: #2ECC71;
+    --warning-color: #E74C3C;
     --dark-bg: #0F1419;
     --light-bg: #1A1F2E;
     --card-bg: #242B3A;
@@ -261,7 +263,8 @@ body {
 }
 
 .search-btn,
-.predict-btn {
+.predict-btn,
+.classify-btn {
     padding: 12px 30px;
     background: linear-gradient(135deg, var(--primary-color) 0%, #FF5252 100%);
     color: white;
@@ -275,13 +278,15 @@ body {
 }
 
 .search-btn:hover,
-.predict-btn:hover {
+.predict-btn:hover,
+.classify-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
 }
 
 .search-btn:active,
-.predict-btn:active {
+.predict-btn:active,
+.classify-btn:active {
     transform: translateY(0);
 }
 
@@ -291,6 +296,50 @@ body {
 
 .predict-btn:hover {
     box-shadow: 0 8px 20px rgba(78, 205, 196, 0.3);
+}
+
+.classify-btn {
+    background: linear-gradient(135deg, var(--success-color) 0%, #27AE60 100%);
+}
+
+.classify-btn:hover {
+    box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+}
+
+/* ============ МОДЕЛЬ СЕЛЕКТОР ============ */
+.model-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.model-selector label {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.model-select {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: var(--success-color);
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.model-select option {
+    background: var(--card-bg);
+    color: var(--text-primary);
 }
 
 /* ============ ЗАГРУЗКА ============ */
@@ -563,7 +612,8 @@ body {
     font-size: 1rem;
 }
 
-#predictionForm {
+#predictionForm,
+#classificationForm {
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -639,6 +689,11 @@ body {
     color: var(--accent-color);
 }
 
+.result-icon.tertiary {
+    background: rgba(46, 204, 113, 0.2);
+    color: var(--success-color);
+}
+
 .result-content label {
     display: block;
     color: var(--text-secondary);
@@ -693,6 +748,120 @@ body {
     max-height: 400px;
 }
 
+/* ============ КЛАССИФИКАЦИЯ ============ */
+.classification-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.classification-search {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.classification-search h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.classification-result {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.classification-result.hidden {
+    display: none;
+}
+
+/* ============ КЛАССИФИКАЦИОННЫЙ ЗНАЧОК ============ */
+.classification-badge {
+    text-align: center;
+    margin: 30px 0;
+}
+
+.badge {
+    display: inline-block;
+    padding: 40px 60px;
+    border-radius: 20px;
+    font-size: 2rem;
+    font-weight: 700;
+    min-width: 300px;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.badge.successful {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(46, 204, 113, 0.1) 100%);
+    border: 2px solid var(--success-color);
+    color: var(--success-color);
+}
+
+.badge.unsuccessful {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2) 0%, rgba(231, 76, 60, 0.1) 100%);
+    border: 2px solid var(--warning-color);
+    color: var(--warning-color);
+}
+
+/* ============ ДЕТАЛИ КЛАССИФИКАЦИИ ============ */
+.classification-details {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* ============ МЕТРИКИ МОДЕЛИ ============ */
+.model-metrics {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.model-metrics h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.metric-item {
+    background: rgba(78, 205, 196, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.metric-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
 /* ============ ФУТЕР ============ */
 .footer {
     text-align: center;
@@ -738,7 +907,8 @@ body {
     }
 
     .search-btn,
-    .predict-btn {
+    .predict-btn,
+    .classify-btn {
         width: 100%;
     }
 
@@ -773,6 +943,33 @@ body {
 
     .prediction-result {
         padding: 20px;
+    }
+
+    .classification-search {
+        padding: 20px;
+    }
+
+    .classification-result {
+        padding: 20px;
+    }
+
+    .model-selector {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .model-select {
+        width: 100%;
+    }
+
+    .badge {
+        padding: 30px 40px;
+        font-size: 1.5rem;
+        min-width: auto;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -814,5 +1011,14 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .badge {
+        padding: 20px 30px;
+        font-size: 1.2rem;
     }
 }
