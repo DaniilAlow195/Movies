@@ -11,6 +11,7 @@ import os
 import traceback
 
 from revenue_predictor import RevenuePredictor
+from movie_classifier import MovieClassifier
 
 warnings.filterwarnings('ignore')
 
@@ -137,7 +138,7 @@ class MovieRecommendationSystem:
         if idx is None:
             return None
 
-        # Используем разреженную матрицу для расчета под��бия ТОЛЬКО для одного фильма
+        # Используем разреженную матрицу для расчета подобия ТОЛЬКО для одного фильма
         print(f"   🔍 Вычисление подобия для фильма #{idx}...")
 
         movie_vector = self.tfidf_matrix[idx]
@@ -160,7 +161,7 @@ class MovieRecommendationSystem:
 
         movie_indices = [i[0] for i in sim_scores]
 
-        # Получаем и��формацию о рекомендованных фильмах
+        # Получаем информацию о рекомендованных фильмах
         recommendations = self.movies.iloc[movie_indices][[
             'title', 'release_date', 'vote_average', 'popularity', 'genres_text', 'overview'
         ]].copy()
@@ -250,6 +251,33 @@ except Exception as e:
     print(f"❌ ОШИБКА при инициализации предсказателя: {e}")
     traceback.print_exc()
     revenue_predictor = None
+    print()
+
+# Инициализация классификатора фильмов
+movie_classifier = None
+logistic_model_file = 'logistic_model.pkl'
+knn_model_file = 'knn_model.pkl'
+
+print("=" * 60)
+print("🎬 Инициализация классификатора фильмов")
+print("=" * 60 + "\n")
+
+try:
+    if os.path.exists(logistic_model_file) and os.path.exists(knn_model_file):
+        print(f"📂 Найдены сохраненные модели классификации")
+        movie_classifier = MovieClassifier(movies_path, credits_path)
+        movie_classifier.load_models(logistic_model_file, knn_model_file)
+    else:
+        print(f"🔨 Обученные модели не найдены. Обучаем новые...\n")
+        movie_classifier = MovieClassifier(movies_path, credits_path)
+        metrics = movie_classifier.train_models()
+        movie_classifier.save_models(logistic_model_file, knn_model_file)
+
+    print("✅ Классификатор фильмов инициализирован!\n")
+except Exception as e:
+    print(f"❌ ОШИБКА при инициализации классификатора: {e}")
+    traceback.print_exc()
+    movie_classifier = None
     print()
 
 print("=" * 60)
@@ -412,6 +440,76 @@ def predict_revenue_api():
         return jsonify({
             'error': str(e)
         }), 500
+
+
+@app.route('/api/classify-movie', methods=['POST'])
+def classify_movie_api():
+    """API для классификации фильма (успешный или нет)"""
+    
+    try:
+        if not movie_classifier:
+            return jsonify({
+                'error': 'Movie classifier not loaded'
+            }), 500
+        
+        data = request.json
+        movie_title = data.get('movie_title', '').strip()
+        use_model = data.get('model', 'knn')  # 'knn' или 'logistic'
+        
+        if not movie_title:
+            return jsonify({
+                'error': 'Movie title is required'
+            }), 400
+        
+        if use_model not in ['knn', 'logistic']:
+            use_model = 'knn'
+        
+        print(f"🎬 Классификация фильма: {movie_title} (модель: {use_model})")
+        
+        result = movie_classifier.classify_movie(movie_title, use_model)
+        
+        if result is None:
+            suggestions = system.get_search_suggestions(movie_title) if system else []
+            
+            return jsonify({
+                'error': 'Movie not found in dataset',
+                'suggestions': suggestions
+            }), 404
+        
+        response_data = {
+            'movie': {
+                'title': result['title'],
+                'release_date': result['release_date'],
+                'genres': result['genres'],
+                'vote_average': result['vote_average'],
+                'vote_count': result['vote_count'],
+                'popularity': result['popularity'],
+                'runtime': result['runtime'],
+                'budget': result['budget'],
+                'cast_count': result['cast_count']
+            },
+            'classification': {
+                'is_successful': result['is_successful'],
+                'is_successful_text': result['is_successful_text'],
+                'probability_successful': result['probability_successful'],
+                'probability_unsuccessful': result['probability_unsuccessful'],
+                'model_used': result['model_used']
+            },
+            'model_metrics': movie_classifier.metrics_logistic if use_model == 'logistic' else movie_classifier.metrics_knn
+        }
+        
+        print(f"   ✅ Результат: {result['is_successful_text']}")
+        
+        return jsonify(response_data)
+    
+    except Exception as e:
+        print(f"❌ ОШИБКА в /api/classify-movie: {e}")
+        traceback.print_exc()
+        
+        return jsonify({
+            'error': str(e)
+        }), 500
+
 
 @app.errorhandler(404)
 def not_found(error):
