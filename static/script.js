@@ -24,6 +24,17 @@ const predictionError = document.getElementById('predictionError');
 const predictionResult = document.getElementById('predictionResult');
 const emptyPrediction = document.getElementById('empty-prediction');
 
+// Элементы классификации
+const classificationForm = document.getElementById('classificationForm');
+const classificationMovieInput = document.getElementById('classificationMovieInput');
+const classificationSuggestions = document.getElementById('classificationSuggestions');
+const classificationLoading = document.getElementById('classificationLoading');
+const classificationError = document.getElementById('classificationError');
+const classificationResult = document.getElementById('classificationResult');
+const emptyClassification = document.getElementById('empty-classification');
+const modelSelect = document.getElementById('modelSelect');
+const classificationBadge = document.getElementById('classificationBadge');
+
 // Переменные
 let debounceTimer;
 let revenueChart = null;
@@ -35,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeEventListeners() {
+    console.log('🔧 Инициализация обработчиков событий...');
+
     // Вкладки
     tabButtons.forEach(button => {
         button.addEventListener('click', handleTabClick);
@@ -43,11 +56,17 @@ function initializeEventListeners() {
     // Рекомендации
     movieInput.addEventListener('input', handleMovieInput);
     searchForm.addEventListener('submit', handleSearchSubmit);
-    document.addEventListener('click', handleDocumentClick);
 
     // Прогноз
     predictionMovieInput.addEventListener('input', handlePredictionInput);
     predictionForm.addEventListener('submit', handlePredictionSubmit);
+
+    // Классификация
+    classificationMovieInput.addEventListener('input', handleClassificationInput);
+    classificationForm.addEventListener('submit', handleClassificationSubmit);
+
+    // Закрытие подсказок при клике снаружи
+    document.addEventListener('click', handleDocumentClick);
 }
 
 // ============ УПРАВЛЕНИЕ ВКЛАДКАМИ ============
@@ -69,9 +88,6 @@ function handleTabClick(e) {
 
 // ============ РЕКОМЕНДАЦИИ ФИЛЬМОВ ============
 
-/**
- * Обработка ввода названия фильма для рекомендаций
- */
 function handleMovieInput(e) {
     clearTimeout(debounceTimer);
     const query = e.target.value.trim();
@@ -83,14 +99,11 @@ function handleMovieInput(e) {
     }
 
     debounceTimer = setTimeout(() => {
-        fetchSuggestions(query);
+        fetchSuggestions(query, 'suggestions');
     }, 300);
 }
 
-/**
- * Получение подсказок для рекомендаций
- */
-async function fetchSuggestions(query) {
+async function fetchSuggestions(query, containerType) {
     try {
         console.log(`🔍 Поиск подсказок: ${query}`);
 
@@ -105,43 +118,49 @@ async function fetchSuggestions(query) {
 
         if (data.error) {
             console.error(`❌ Ошибка сервера: ${data.error}`);
-            suggestionsDropdown.classList.remove('active');
             return;
         }
 
         if (data.suggestions && data.suggestions.length > 0) {
             console.log(`✅ Найдено подсказок: ${data.suggestions.length}`);
-            displaySuggestions(data.suggestions);
-        } else {
-            console.log('⚠️ Подсказки не найдены');
-            suggestionsDropdown.classList.remove('active');
+            displaySuggestions(data.suggestions, containerType);
         }
     } catch (err) {
         console.error('❌ Ошибка при получении подсказок:', err);
     }
 }
-/**
- * Отображение подсказок
- */
-function displaySuggestions(suggestions) {
-    suggestionsDropdown.innerHTML = suggestions
+
+function displaySuggestions(suggestions, containerType) {
+    let container;
+    let inputElement;
+
+    if (containerType === 'suggestions') {
+        container = suggestionsDropdown;
+        inputElement = movieInput;
+    } else if (containerType === 'predictionSuggestions') {
+        container = predictionSuggestions;
+        inputElement = predictionMovieInput;
+    } else if (containerType === 'classificationSuggestions') {
+        container = classificationSuggestions;
+        inputElement = classificationMovieInput;
+    }
+
+    if (!container) return;
+
+    container.innerHTML = suggestions
         .map(s => `<div class="suggestion-item">${escapeHtml(s)}</div>`)
         .join('');
 
-    suggestionsDropdown.classList.add('active');
+    container.classList.add('active');
 
-    // Добавляем слушатели на подсказки
-    document.querySelectorAll('.suggestion-item').forEach(item => {
+    container.querySelectorAll('.suggestion-item').forEach(item => {
         item.addEventListener('click', () => {
-            movieInput.value = item.textContent;
-            suggestionsDropdown.classList.remove('active');
+            inputElement.value = item.textContent;
+            container.classList.remove('active');
         });
     });
 }
 
-/**
- * Закрытие подсказок при клике снаружи
- */
 function handleDocumentClick(e) {
     if (!e.target.closest('.search-input-wrapper')) {
         suggestionsDropdown.classList.remove('active');
@@ -149,11 +168,11 @@ function handleDocumentClick(e) {
     if (!e.target.closest('.search-input-wrapper-prediction')) {
         predictionSuggestions.classList.remove('active');
     }
+    if (!e.target.closest('.search-input-wrapper-prediction')) {
+        classificationSuggestions.classList.remove('active');
+    }
 }
 
-/**
- * Обработка отправки формы поиска рекомендаций
- */
 async function handleSearchSubmit(e) {
     e.preventDefault();
 
@@ -169,9 +188,6 @@ async function handleSearchSubmit(e) {
     await fetchRecommendations(movieTitle, n_recommendations);
 }
 
-/**
- * Получение рекомендаций фильмов
- */
 async function fetchRecommendations(movieTitle, n_recommendations) {
     showLoading(true);
     hideError();
@@ -209,9 +225,6 @@ async function fetchRecommendations(movieTitle, n_recommendations) {
     }
 }
 
-/**
- * Отображение рекомендаций
- */
 function displayRecommendations(recommendations) {
     if (!recommendations || recommendations.length === 0) {
         console.log('⚠️ Нет рекомендаций');
@@ -226,9 +239,6 @@ function displayRecommendations(recommendations) {
     showResults();
 }
 
-/**
- * Создание карточки фильма
- */
 function createMovieCard(movie, index) {
     const genres = movie.genres
         .split(' ')
@@ -278,9 +288,6 @@ function createMovieCard(movie, index) {
 
 // ============ ПРОГНОЗ ДОХОДОВ ============
 
-/**
- * Обработка ввода названия фильма для прогноза
- */
 function handlePredictionInput(e) {
     clearTimeout(debounceTimer);
     const query = e.target.value.trim();
@@ -292,53 +299,10 @@ function handlePredictionInput(e) {
     }
 
     debounceTimer = setTimeout(() => {
-        fetchPredictionSuggestions(query);
+        fetchSuggestions(query, 'predictionSuggestions');
     }, 300);
 }
 
-/**
- * Получение подсказок для прогноза
- */
-async function fetchPredictionSuggestions(query) {
-    try {
-        console.log(`🔍 Поиск подсказок прогноза: ${query}`);
-
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-
-        if (data.suggestions && data.suggestions.length > 0) {
-            console.log(`✅ Найдено подсказок прогноза: ${data.suggestions.length}`);
-            displayPredictionSuggestions(data.suggestions);
-        } else {
-            console.log('⚠️ Подсказки прогноза не найдены');
-            predictionSuggestions.classList.remove('active');
-        }
-    } catch (err) {
-        console.error('❌ Ошибка при получении подсказок прогноза:', err);
-    }
-}
-
-/**
- * Отображение подсказок для прогноза
- */
-function displayPredictionSuggestions(suggestions) {
-    predictionSuggestions.innerHTML = suggestions
-        .map(s => `<div class="suggestion-item">${escapeHtml(s)}</div>`)
-        .join('');
-
-    predictionSuggestions.classList.add('active');
-
-    document.querySelectorAll('#predictionSuggestions .suggestion-item').forEach(item => {
-        item.addEventListener('click', () => {
-            predictionMovieInput.value = item.textContent;
-            predictionSuggestions.classList.remove('active');
-        });
-    });
-}
-
-/**
- * Обработка отправки формы прогноза
- */
 async function handlePredictionSubmit(e) {
     e.preventDefault();
 
@@ -353,9 +317,6 @@ async function handlePredictionSubmit(e) {
     await fetchRevenuePredict(movieTitle);
 }
 
-/**
- * Получение прогноза доходов
- */
 async function fetchRevenuePredict(movieTitle) {
     showPredictionLoading(true);
     hidePredictionError();
@@ -391,9 +352,6 @@ async function fetchRevenuePredict(movieTitle) {
     }
 }
 
-/**
- * Отображение результатов прогноза
- */
 function displayPredictionResult(data) {
     const movie = data.movie;
     const budget = data.budget;
@@ -415,15 +373,14 @@ function displayPredictionResult(data) {
     document.getElementById('predictedRevenue').textContent = `$${formatNumber(predictedRevenue)}`;
     document.getElementById('roiValue').textContent = `${roi.toFixed(1)}%`;
     document.getElementById('voteValue').textContent = `${movie.vote_average.toFixed(1)}/10`;
-// Метрики модели
-if (data.model_metrics) {
 
-    // Лучше показывать RMSE
-    document.getElementById('mseValue').textContent =
-        '$' + formatNumber(data.model_metrics.rmse);
+    // Метрики модели
+    if (data.model_metrics) {
+        document.getElementById('mseValue').textContent =
+            '$' + formatNumber(data.model_metrics.rmse);
 
-    console.log('📈 Метрики модели:', data.model_metrics);
-}
+        console.log('📈 Метрики модели:', data.model_metrics);
+    }
 
     document.getElementById('genreValue').textContent = movie.genres || '-';
     document.getElementById('yearValue').textContent = movie.release_date || '-';
@@ -440,9 +397,6 @@ if (data.model_metrics) {
     showPredictionResult();
 }
 
-/**
- * Рисование графика доходов
- */
 function drawRevenueChart(budget, predicted, actual) {
     const ctx = document.getElementById('revenueChart').getContext('2d');
 
@@ -543,18 +497,139 @@ function drawRevenueChart(budget, predicted, actual) {
     });
 }
 
+// ============ КЛАССИФИКАЦИЯ ФИЛЬМОВ ============
+
+function handleClassificationInput(e) {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+
+    console.log(`🔍 Ввод классификации: "${query}"`);
+
+    if (query.length < 2) {
+        classificationSuggestions.innerHTML = '';
+        classificationSuggestions.classList.remove('active');
+        return;
+    }
+
+    debounceTimer = setTimeout(() => {
+        console.log(`📡 Запрос подсказок для классификации...`);
+        fetchSuggestions(query, 'classificationSuggestions');
+    }, 300);
+}
+
+async function handleClassificationSubmit(e) {
+    e.preventDefault();
+
+    const movieTitle = classificationMovieInput.value.trim();
+    const model = modelSelect.value || 'knn';
+
+    if (!movieTitle) {
+        showClassificationError('❌ Пожалуйста, введите название фильма');
+        return;
+    }
+
+    console.log(`🤖 Классификация для: ${movieTitle} (модель: ${model})`);
+    await fetchClassification(movieTitle, model);
+}
+
+async function fetchClassification(movieTitle, model) {
+    showClassificationLoading(true);
+    hideClassificationError();
+    hideClassificationResult();
+
+    try {
+        console.log(`📡 Отправка запроса классификации...`);
+
+        const response = await fetch('/api/classify-movie', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                movie_title: movieTitle,
+                model: model
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.log(`⚠️ Фильм для классификации не найден: ${movieTitle}`);
+            showClassificationError(data.error || 'Фильм не найден', data.suggestions);
+            showClassificationLoading(false);
+            return;
+        }
+
+        console.log(`✅ Получена классификация для: ${data.movie.title}`);
+        displayClassificationResult(data);
+        showClassificationLoading(false);
+    } catch (err) {
+        console.error('❌ Ошибка при классификации:', err);
+        showClassificationError('❌ Ошибка при классификации');
+        showClassificationLoading(false);
+    }
+}
+
+function displayClassificationResult(data) {
+    const movie = data.movie;
+    const classification = data.classification;
+    const metrics = data.model_metrics;
+
+    console.log(`📊 Результаты классификации:
+        Статус: ${classification.is_successful_text}
+        Модель: ${classification.model_used}`);
+
+    // Заголовок
+    document.getElementById('classResultTitle').textContent = `${movie.title}`;
+    document.getElementById('classResultSubtitle').textContent = `${movie.genres} • ${movie.release_date}`;
+
+    // Значок статуса
+    if (classification.is_successful) {
+        classificationBadge.className = 'badge success';
+        classificationBadge.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Успешный фильм';
+    } else {
+        classificationBadge.className = 'badge danger';
+        classificationBadge.innerHTML = '<i class="fas fa-times-circle"></i> ❌ Менее успешный фильм';
+    }
+
+    // Основные значения
+    document.getElementById('classVoteValue').textContent = `${movie.vote_average.toFixed(1)}/10`;
+    document.getElementById('classPopularityValue').textContent = movie.popularity.toFixed(1);
+    document.getElementById('classVoteCountValue').textContent = formatNumber(movie.vote_count);
+    document.getElementById('classCastValue').textContent = movie.cast_count || '0';
+
+    // Детали
+    document.getElementById('classGenreValue').textContent = movie.genres || '-';
+    document.getElementById('classYearValue').textContent = movie.release_date || '-';
+    document.getElementById('classRuntimeValue').textContent = `${movie.runtime} мин` || '-';
+    document.getElementById('classBudgetValue').textContent = `$${formatNumber(movie.budget)}` || '-';
+    document.getElementById('classModelValue').textContent = classification.model_used === 'knn' ? 'k-NN (k-Nearest Neighbors)' : 'Логистическая регрессия';
+
+    // Вероятность
+    let probText = '-';
+    if (classification.probability_successful !== null && classification.probability_successful !== undefined) {
+        const prob = (classification.probability_successful * 100).toFixed(1);
+        probText = `${prob}%`;
+    }
+    document.getElementById('classProbabilityValue').textContent = probText;
+
+    // Метрики модели
+    document.getElementById('metricAccuracy').textContent = `${(metrics.accuracy * 100).toFixed(2)}%`;
+    document.getElementById('metricPrecision').textContent = `${(metrics.precision * 100).toFixed(2)}%`;
+    document.getElementById('metricRecall').textContent = `${(metrics.recall * 100).toFixed(2)}%`;
+    document.getElementById('metricF1').textContent = metrics.f1.toFixed(4);
+    document.getElementById('metricROC').textContent = metrics.roc_auc.toFixed(4);
+
+    // Показываем результаты
+    showClassificationResult();
+}
+
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
 
-/**
- * Форматирование числа с разделителем тысяч
- */
 function formatNumber(num) {
     return Math.round(num).toLocaleString('en-US');
 }
 
-/**
- * Экранирование HTML специальных символов
- */
 function escapeHtml(text) {
     if (!text) return '';
 
@@ -634,11 +709,37 @@ function hidePredictionError() {
     predictionError.classList.add('hidden');
 }
 
+// ============ ФУНКЦИИ ВИДИМОСТИ (Классификация) ============
+
+function showClassificationLoading(show) {
+    classificationLoading.classList.toggle('hidden', !show);
+}
+
+function showClassificationResult() {
+    classificationResult.classList.remove('hidden');
+    emptyClassification.classList.add('hidden');
+}
+
+function hideClassificationResult() {
+    classificationResult.classList.add('hidden');
+    emptyClassification.classList.remove('hidden');
+}
+
+function showClassificationError(message, suggestions = null) {
+    let fullMessage = `❌ ${message}`;
+    if (suggestions && suggestions.length > 0) {
+        fullMessage += `\n💡 Может быть вы имеете в виду: ${suggestions.slice(0, 3).join(', ')}`;
+    }
+    classificationError.textContent = fullMessage;
+    classificationError.classList.remove('hidden');
+}
+
+function hideClassificationError() {
+    classificationError.classList.add('hidden');
+}
+
 // ============ АНИМАЦИИ ============
 
-/**
- * Инициализация анимаций
- */
 const animationStyle = document.createElement('style');
 animationStyle.textContent = `
     @keyframes slideIn {
@@ -672,5 +773,6 @@ document.head.appendChild(animationStyle);
 // ============ ЛОГИРОВАНИЕ ============
 
 console.log('%c🎬 MovieMatch приложение загружено!', 'color: #FF6B6B; font-size: 16px; font-weight: bold;');
-console.log('%cВкладка "Рекомендации" - получайте похожие фильмы', 'color: #4ECDC4; font-size: 12px;');
-console.log('%cВкладка "Прогноз доходов" - предсказывайте кассовые сборы', 'color: #FFE66D; font-size: 12px;');
+console.log('%c✅ Вкладка "Рекомендации" - получайте похожие фильмы', 'color: #4ECDC4; font-size: 12px;');
+console.log('%c✅ Вкладка "Прогноз доходов" - предсказывайте кассовые сборы', 'color: #FFE66D; font-size: 12px;');
+console.log('%c✅ Вкладка "Классификация" - классифицируйте успешность фильмов', 'color: #95E1D3; font-size: 12px;');

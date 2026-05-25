@@ -263,13 +263,24 @@ print("🎬 Инициализация классификатора фильмо
 print("=" * 60 + "\n")
 
 try:
+    # Создаем экземпляр классификатора
+    movie_classifier = MovieClassifier(movies_path, credits_path)
+
+    # Проверяем наличие сохраненных моделей
     if os.path.exists(logistic_model_file) and os.path.exists(knn_model_file):
         print(f"📂 Найдены сохраненные модели классификации")
-        movie_classifier = MovieClassifier(movies_path, credits_path)
-        movie_classifier.load_models(logistic_model_file, knn_model_file)
+        print(f"   📁 {logistic_model_file}")
+        print(f"   📁 {knn_model_file}")
+        try:
+            movie_classifier.load_models(logistic_model_file, knn_model_file)
+            print("✅ Модели успешно загружены!\n")
+        except Exception as load_error:
+            print(f"⚠️ Ошибка при загрузке моделей: {load_error}")
+            print(f"🔨 Переобучаем модели...\n")
+            metrics = movie_classifier.train_models()
+            movie_classifier.save_models(logistic_model_file, knn_model_file)
     else:
         print(f"🔨 Обученные модели не найдены. Обучаем новые...\n")
-        movie_classifier = MovieClassifier(movies_path, credits_path)
         metrics = movie_classifier.train_models()
         movie_classifier.save_models(logistic_model_file, knn_model_file)
 
@@ -445,37 +456,47 @@ def predict_revenue_api():
 @app.route('/api/classify-movie', methods=['POST'])
 def classify_movie_api():
     """API для классификации фильма (успешный или нет)"""
-    
+
     try:
         if not movie_classifier:
             return jsonify({
                 'error': 'Movie classifier not loaded'
             }), 500
-        
+
         data = request.json
         movie_title = data.get('movie_title', '').strip()
-        use_model = data.get('model', 'knn')  # 'knn' или 'logistic'
-        
+        use_model = data.get('model', 'knn').lower()  # 'knn' или 'logistic'
+
         if not movie_title:
             return jsonify({
                 'error': 'Movie title is required'
             }), 400
-        
+
+        # Валидация модели
         if use_model not in ['knn', 'logistic']:
             use_model = 'knn'
-        
-        print(f"🎬 Классификация фильма: {movie_title} (модель: {use_model})")
-        
+            print(f"⚠️ Неизвестная модель, используется knn по умолчанию")
+
+        print(f"🎬 Классификация фильма: '{movie_title}' (модель: {use_model})")
+
+        # Вызываем метод классификации
         result = movie_classifier.classify_movie(movie_title, use_model)
-        
+
         if result is None:
             suggestions = system.get_search_suggestions(movie_title) if system else []
-            
+            print(f"   ⚠️ Фильм не найден в датасете")
+
             return jsonify({
                 'error': 'Movie not found in dataset',
                 'suggestions': suggestions
             }), 404
-        
+
+        # Выбираем правильные метрики в зависимости от модели
+        model_metrics = (
+            movie_classifier.metrics_logistic if use_model == 'logistic'
+            else movie_classifier.metrics_knn
+        )
+
         response_data = {
             'movie': {
                 'title': result['title'],
@@ -495,17 +516,25 @@ def classify_movie_api():
                 'probability_unsuccessful': result['probability_unsuccessful'],
                 'model_used': result['model_used']
             },
-            'model_metrics': movie_classifier.metrics_logistic if use_model == 'logistic' else movie_classifier.metrics_knn
+            'model_metrics': model_metrics
         }
-        
+
         print(f"   ✅ Результат: {result['is_successful_text']}")
-        
+        if result['probability_successful'] is not None:
+            print(f"   📊 Вероятность успешности: {result['probability_successful']:.2%}")
+
         return jsonify(response_data)
-    
+
+    except ValueError as ve:
+        print(f"❌ ОШИБКА ЗНАЧЕНИЯ в /api/classify-movie: {ve}")
+        return jsonify({
+            'error': str(ve)
+        }), 400
+
     except Exception as e:
         print(f"❌ ОШИБКА в /api/classify-movie: {e}")
         traceback.print_exc()
-        
+
         return jsonify({
             'error': str(e)
         }), 500
