@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 MovieMatch - Рекомендации и прогноз доходов</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="background"></div>
+
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <i class="fas fa-film"></i> MovieMatch
+                </h1>
+                <p class="subtitle">Рекомендации фильмов и прогноз их доходов</p>
+            </div>
+        </header>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Вкладки -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="recommendations">
+                        <i class="fas fa-star"></i> Рекомендации
+                    </button>
+                    <button class="tab-button" data-tab="revenue-prediction">
+                        <i class="fas fa-chart-line"></i> Прогноз доходов
+                    </button>
+                </div>
+            </div>
+
+            <!-- Вкладка: Рекомендации -->
+            <section id="recommendations" class="tab-content active">
+                <section class="search-section">
+                    <div class="search-container">
+                        <form id="searchForm" class="search-form">
+                            <div class="search-input-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    id="movieInput"
+                                    placeholder="Введите название фильма..."
+                                    class="search-input"
+                                    autocomplete="off"
+                                >
+                                <div id="suggestions" class="suggestions-dropdown"></div>
+                            </div>
+
+                            <div class="controls">
+                                <div class="count-control">
+                                    <label for="countInput">Количество:</label>
+                                    <input
+                                        type="number"
+                                        id="countInput"
+                                        min="1"
+                                        max="50"
+                                        value="10"
+                                        class="count-input"
+                                    >
+                                </div>
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-search"></i> Поиск
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <div id="loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Поиск похожих фильмов...</p>
+                </div>
+
+                <div id="error" class="error-message hidden"></div>
+
+                <section id="results" class="results-section hidden">
+                    <h2 class="results-title">
+                        <i class="fas fa-star"></i> Рекомендации
+                    </h2>
+                    <div id="recommendationsList" class="recommendations-grid"></div>
+                </section>
+
+                <section id="empty-state" class="empty-state">
+                    <i class="fas fa-clapperboard"></i>
+                    <h2>Начните поиск</h2>
+                    <p>Введите название любимого фильма, чтобы получить рекомендации</p>
+                </section>
+            </section>
+
+            <!-- Вкладка: Прогноз доходов -->
+            <section id="revenue-prediction" class="tab-content">
+                <div class="prediction-container">
+                    <div class="prediction-search">
+                        <form id="predictionForm">
+                            <h2>Предсказание дохода фильма</h2>
+                            <p class="form-description">Введите название фильма, чтобы предсказать его потенциальный доход</p>
+
+                            <div class="search-input-wrapper-prediction">
+                                <i class="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    id="predictionMovieInput"
+                                    placeholder="Введите название фильма..."
+                                    class="search-input"
+                                    autocomplete="off"
+                                >
+                                <div id="predictionSuggestions" class="suggestions-dropdown"></div>
+                            </div>
+
+                            <button type="submit" class="predict-btn">
+                                <i class="fas fa-calculator"></i> Прогнозировать доход
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="predictionLoading" class="loading hidden">
+                        <div class="spinner"></div>
+                        <p>Анализ данных...</p>
+                    </div>
+
+                    <div id="predictionError" class="error-message hidden"></div>
+
+                    <!-- Результаты прогноза -->
+                    <div id="predictionResult" class="prediction-result hidden">
+                        <div class="result-header">
+                            <h2 id="resultTitle">Резу��ьтат прогноза</h2>
+                            <p id="resultSubtitle" class="result-subtitle"></p>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-card">
+                                <div class="result-icon">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div class="result-content">
+                                    <label>Бюджет</label>
+                                    <div class="result-value" id="budgetValue">$0</div>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon primary">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="result-content">
+                                    <label>Предсказанный доход</label>
+                                    <div class="result-value" id="predictedRevenue">$0</div>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon secondary">
+                                    <i class="fas fa-percent"></i>
+                                </div>
+                                <div class="result-content">
+                                    <label>ROI (Возврат инвестиций)</label>
+                                    <div class="result-value" id="roiValue">0%</div>
+                                </div>
+                            </div>
+                            <div class="result-card">
+                         <div class="result-icon tertiary">
+        <i class="fas fa-brain"></i>
+    </div>
+    <div class="result-content">
+        <label>RMSE модели</label>
+        <div class="result-value" id="mseValue">0</div>
+    </div>
+</div>
+                            <div class="result-card">
+                                <div class="result-icon">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div class="result-content">
+                                    <label>Оценка</label>
+                                    <div class="result-value" id="voteValue">0/10</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="movie-details">
+                            <div class="details-row">
+                                <span class="detail-label">Жанр:</span>
+                                <span class="detail-value" id="genreValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Год выпуска:</span>
+                                <span class="detail-value" id="yearValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Продолжительность:</span>
+                                <span class="detail-value" id="runtimeValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Актеров в кадре:</span>
+                                <span class="detail-value" id="castValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Голосов:</span>
+                                <span class="detail-value" id="voteCountValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Популярность:</span>
+                                <span class="detail-value" id="popularityValue">-</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="detail-label">Фактический доход:</span>
+                                <span class="detail-value" id="actualRevenueValue">-</span>
+                            </div>
+                        </div>
+
+                        <div class="result-chart">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div id="empty-prediction" class="empty-state">
+                        <i class="fas fa-coins"></i>
+                        <h2>Прогноз доходов</h2>
+                        <p>Введите название фильма, чтобы узнать его потенциальный доход</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Футер -->
+        <footer class="footer">
+            <p>🎬 MovieMatch © 2024 | Система рекомендации фильмов и прогноза доходов</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
