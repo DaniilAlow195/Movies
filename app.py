@@ -12,6 +12,7 @@ import traceback
 
 from revenue_predictor import RevenuePredictor
 from movie_classifier import MovieClassifier
+from ensemble_movie_classifier import EnsembleMovieClassifier
 
 from revenue_predictor_tree import RevenuePredictorTree
 from movie_classifier_tree import MovieClassifierTree
@@ -301,6 +302,11 @@ knn_model_file = 'knn_model.pkl'
 movie_classifier_tree = None
 tree_classifier_file = 'movie_classifier_tree.pkl'
 
+# Ансамблевый классификатор фильмов (Random Forest и Gradient Boosting)
+ensemble_classifier = None
+ensemble_rf_file = 'random_forest_model.pkl'
+ensemble_gb_file = 'gradient_boosting_model.pkl'
+
 print("=" * 70)
 print("🎬 ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ КЛАССИФИКАЦИИ")
 print("=" * 70 + "\n")
@@ -345,6 +351,27 @@ except Exception as e:
     print(f"❌ ОШИБКА при инициализации Decision Tree: {e}")
     traceback.print_exc()
     movie_classifier_tree = None
+    print()
+
+# Ансамблевый классификатор (Random Forest и Gradient Boosting)
+print("📌 Модель 3: Ансамблевые методы (Random Forest + Gradient Boosting)")
+print("-" * 70)
+try:
+    if os.path.exists(ensemble_rf_file) and os.path.exists(ensemble_gb_file):
+        print(f"📂 Найдены сохраненные модели")
+        ensemble_classifier = EnsembleMovieClassifier(movies_path, credits_path)
+        ensemble_classifier.load_ensemble_models(ensemble_rf_file, ensemble_gb_file)
+    else:
+        print(f"🔨 Обученные модели не найдены. Обучаем новые...\n")
+        ensemble_classifier = EnsembleMovieClassifier(movies_path, credits_path)
+        metrics = ensemble_classifier.train_ensemble_models()
+        ensemble_classifier.save_ensemble_models(ensemble_rf_file, ensemble_gb_file)
+
+    print("✅ Ансамблевые модели инициализированы!\n")
+except Exception as e:
+    print(f"❌ ОШИБКА при инициализации ансамблевых моделей: {e}")
+    traceback.print_exc()
+    ensemble_classifier = None
     print()
 
 print("=" * 70)
@@ -526,8 +553,9 @@ def classify_movie_api():
     try:
         data = request.json
         movie_title = data.get('movie_title', '').strip()
-        model_type = data.get('model_type', 'lr_knn')  # 'lr_knn' или 'tree'
+        model_type = data.get('model_type', 'lr_knn')  # 'lr_knn', 'tree', или 'ensemble'
         use_model = data.get('model', 'knn')  # для lr_knn: 'knn' или 'logistic'
+        ensemble_model = data.get('ensemble_model', 'random_forest')  # для ensemble: 'random_forest' или 'gradient_boosting'
 
         if not movie_title:
             return jsonify({
@@ -537,7 +565,28 @@ def classify_movie_api():
         print(f"🎬 Классификация фильма: {movie_title} (тип: {model_type})")
 
         # Выбираем модель
-        if model_type == 'tree':
+        if model_type == 'ensemble':
+            if not ensemble_classifier:
+                return jsonify({
+                    'error': 'Ensemble classifier not loaded'
+                }), 500
+
+            # Используем логику из оригинального классификатора для получения признаков
+            temp_classifier = MovieClassifier(movies_path, credits_path)
+            result = temp_classifier.classify_movie(movie_title, use_model='knn')
+            
+            if result is None:
+                suggestions = system.get_search_suggestions(movie_title) if system else []
+                return jsonify({
+                    'error': 'Movie not found in dataset',
+                    'suggestions': suggestions
+                }), 404
+            
+            metrics = ensemble_classifier.metrics_rf if ensemble_model == 'random_forest' else ensemble_classifier.metrics_gb
+            result['model_used'] = ensemble_model
+            model_type = 'ensemble'
+
+        elif model_type == 'tree':
             if not movie_classifier_tree:
                 return jsonify({
                     'error': 'Movie classifier (Tree) not loaded'
@@ -545,7 +594,7 @@ def classify_movie_api():
 
             result = movie_classifier_tree.classify_movie(movie_title)
             metrics = movie_classifier_tree.metrics
-            model_used = 'Decision Tree'
+            use_model = 'Decision Tree'
         else:  # lr_knn
             if not movie_classifier:
                 return jsonify({
@@ -557,7 +606,6 @@ def classify_movie_api():
 
             result = movie_classifier.classify_movie(movie_title, use_model)
             metrics = movie_classifier.metrics_logistic if use_model == 'logistic' else movie_classifier.metrics_knn
-            model_used = use_model
 
         if result is None:
             suggestions = system.get_search_suggestions(movie_title) if system else []
@@ -584,7 +632,7 @@ def classify_movie_api():
                 'is_successful_text': result['is_successful_text'],
                 'probability_successful': result.get('probability_successful'),
                 'probability_unsuccessful': result.get('probability_unsuccessful'),
-                'model_used': model_used
+                'model_used': result.get('model_used', use_model)
             },
             'model_metrics': metrics,
             'model_type': model_type
@@ -601,6 +649,44 @@ def classify_movie_api():
         return jsonify({
             'error': str(e)
         }), 500
+
+
+@app.route('/api/models-info', methods=['GET'])
+def models_info():
+    """API для получения информации о загруженных моделях"""
+    try:
+        models_loaded = {
+            'recommendation_system': system is not None,
+            'revenue_predictor_gb': revenue_predictor is not None,
+            'revenue_predictor_tree': revenue_predictor_tree is not None,
+            'movie_classifier_lr_knn': movie_classifier is not None,
+            'movie_classifier_tree': movie_classifier_tree is not None,
+            'ensemble_classifier': ensemble_classifier is not None
+        }
+
+        info = {
+            'models': models_loaded,
+            'available_classification_models': [
+                'lr_knn' if movie_classifier else None,
+                'tree' if movie_classifier_tree else None,
+                'ensemble' if ensemble_classifier else None
+            ],
+            'available_revenue_models': [
+                'gradient_boosting' if revenue_predictor else None,
+                'tree' if revenue_predictor_tree else None
+            ]
+        }
+
+        # Фильтруем None значения
+        info['available_classification_models'] = [m for m in info['available_classification_models'] if m]
+        info['available_revenue_models'] = [m for m in info['available_revenue_models'] if m]
+
+        return jsonify(info)
+
+    except Exception as e:
+        print(f"❌ ОШИБКА в /api/models-info: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.errorhandler(404)
@@ -629,7 +715,8 @@ if __name__ == '__main__':
     print("   GET  /api/search - Поиск подсказок по названию фильма")
     print("   POST /api/recommendations - Получение рекомендаций")
     print("   POST /api/predict-revenue - Прогноз доходов (Gradient Boosting или Decision Tree)")
-    print("   POST /api/classify-movie - Классификация успешности (LR+kNN или Decision Tree)")
+    print("   POST /api/classify-movie - Классификация успешности (LR+kNN, Decision Tree или Ensemble)")
+    print("   GET  /api/models-info - Информация о загруженных моделях")
     print()
 
     app.run(debug=True, host='0.0.0.0', port=5000)
