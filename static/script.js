@@ -568,7 +568,7 @@ function drawRevenueChart(budget, predicted, actual) {
 // ============ КЛАССИФИКАЦИЯ ФИЛЬМОВ ============
 
 /**
- * Переключение видимости подмодели для LR+kNN
+ * Переключение видимости подмодели для LR+kNN и показ селектора для Ensemble
  */
 function handleClassificationModelChange(e) {
     const modelType = e.target.value;
@@ -665,16 +665,23 @@ async function fetchClassification(movieTitle, modelType, useModel) {
     hideClassificationResult();
 
     try {
+        const requestData = {
+            movie_title: movieTitle,
+            model_type: modelType,
+            model: useModel
+        };
+
+        // Если это ensemble модель, добавляем параметр ансамбля
+        if (modelType === 'ensemble') {
+            requestData.ensemble_model = useModel === 'logistic' ? 'gradient_boosting' : 'random_forest';
+        }
+
         const response = await fetch('/api/classify-movie', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                movie_title: movieTitle,
-                model_type: modelType,
-                model: useModel
-            })
+            body: JSON.stringify(requestData)
         });
 
         const data = await response.json();
@@ -925,4 +932,5 @@ document.head.appendChild(animationStyle);
 console.log('%c🎬 MovieMatch приложение загружено!', 'color: #FF6B6B; font-size: 16px; font-weight: bold;');
 console.log('%cВкладка "Рекомендации" - получайте похожие фильмы', 'color: #4ECDC4; font-size: 12px;');
 console.log('%cВкладка "Прогноз доходов" - предсказывайте кассовые сборы (Gradient Boosting + Decision Tree)', 'color: #FFE66D; font-size: 12px;');
-console.log('%cВкладка "Классификация" - определяйте успешность фильмов (LR+kNN + Decision Tree)', 'color: #FF6B9D; font-size: 12px;');
+console.log('%cВкладка "Классификация" - определяйте успешность фильмов (LR+kNN + Decision Tree + Ensemble Models)', 'color: #FF6B9D; font-size: 12px;');
+    
