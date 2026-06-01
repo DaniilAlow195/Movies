@@ -13,6 +13,8 @@ warnings.filterwarnings('ignore')
 
 
 class RevenuePredictor:
+    """Предсказатель доходов фильмов с использованием Gradient Boosting"""
+    
     def __init__(self, movies_path, credits_path=None):
         """Инициализация предсказателя доходов"""
         self.movies_df = pd.read_csv(movies_path)
@@ -23,9 +25,10 @@ class RevenuePredictor:
         self.feature_columns = None
         self.label_encoders = {}
         self.prepared_data = None
+        self.metrics = {}
 
         # Диагностика
-        print(f"\n📊 Диагностика данных:")
+        print(f"\n📊 Диагностика данных для предсказателя доходов:")
         print(f"   Фильмов в movies_metadata.csv: {len(self.movies_df)}")
         print(f"   Колонки: {list(self.movies_df.columns[:10])}")
         if self.credits_df is not None:
@@ -204,7 +207,8 @@ class RevenuePredictor:
             'r2': float(r2),
             'mae': float(mae),
             'mse': float(mse),
-            'rmse': float(rmse)
+            'rmse': float(rmse),
+            'model_type': 'Gradient Boosting Regressor'
         }
 
         return self.metrics
@@ -337,7 +341,8 @@ class RevenuePredictor:
             'r2': 0,
             'mae': 0,
             'mse': 0,
-            'rmse': 0
+            'rmse': 0,
+            'model_type': 'Gradient Boosting Regressor'
         })
 
         print(f"✅ Модель загружена: {filepath}")
