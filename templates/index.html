@@ -116,6 +116,14 @@
                                 <div id="predictionSuggestions" class="suggestions-dropdown"></div>
                             </div>
 
+                            <div class="model-selector">
+                                <label for="revenueModelSelect">Выберите модель:</label>
+                                <select id="revenueModelSelect" class="model-select">
+                                    <option value="gradient_boosting">Gradient Boosting (оригинальная)</option>
+                                    <option value="tree">Decision Tree (дерево решений)</option>
+                                </select>
+                            </div>
+
                             <button type="submit" class="predict-btn">
                                 <i class="fas fa-calculator"></i> Прогнозировать доход
                             </button>
@@ -215,6 +223,10 @@
                                 <span class="detail-label">Фактический доход:</span>
                                 <span class="detail-value" id="actualRevenueValue">-</span>
                             </div>
+                            <div class="details-row">
+                                <span class="detail-label">Модель:</span>
+                                <span class="detail-value" id="modelTypeValue">-</span>
+                            </div>
                         </div>
 
                         <div class="result-chart">
@@ -251,7 +263,15 @@
                             </div>
 
                             <div class="model-selector">
-                                <label for="modelSelect">Выберите модель:</label>
+                                <label for="classificationModelSelect">Выберите модель:</label>
+                                <select id="classificationModelSelect" class="model-select">
+                                    <option value="lr_knn">Логистическая регрессия + k-NN (оригинальные)</option>
+                                    <option value="tree">Decision Tree (дерево решений)</option>
+                                </select>
+                            </div>
+
+                            <div class="model-selector" id="subModelSelector" style="display: none;">
+                                <label for="modelSelect">Выберите подмодель (для LR+kNN):</label>
                                 <select id="modelSelect" class="model-select">
                                     <option value="knn">k-NN (точность: высокая)</option>
                                     <option value="logistic">Логистическая регрессия (интерпретируемость: высокая)</option>
@@ -389,7 +409,7 @@
 
         <!-- Футер -->
         <footer class="footer">
-            <p>🎬 MovieMatch © 2024 | Система рекомендации фильмов, прогноза доходов и классификации успешности</p>
+            <p>🎬 MovieMatch © 2024 | Система рекомендации фильмов, прогноза доходов и классификации успешности с использованием деревьев решений</p>
         </footer>
     </div>
 

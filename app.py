@@ -13,6 +13,9 @@ import traceback
 from revenue_predictor import RevenuePredictor
 from movie_classifier import MovieClassifier
 
+from revenue_predictor_tree import RevenuePredictorTree
+from movie_classifier_tree import MovieClassifierTree
+
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -20,6 +23,8 @@ CORS(app)
 
 
 class MovieRecommendationSystem:
+    """Система рекомендации фильмов на основе TF-IDF и косинусного подобия"""
+
     def __init__(self, movies_path, keywords_path=None):
         """Инициализация системы рекомендаций фильмов"""
         print("📂 Загрузка данных фильмов...")
@@ -197,9 +202,9 @@ class MovieRecommendationSystem:
 
 # ============ ИНИЦИАЛИЗАЦИЯ ============
 
-print("=" * 60)
-print("🎬 MOVIEMATCH - Загрузка системы")
-print("=" * 60 + "\n")
+print("=" * 70)
+print("🎬 MOVIEMATCH - СИСТЕМА РЕКОМЕНДАЦИЙ И АНАЛИЗА ФИЛЬМОВ")
+print("=" * 70 + "\n")
 
 # Пути к файлам - ИЗМЕНИТЕ НА СВОИ ПУТИ!
 movies_path = r"C:\Users\Даниил\Downloads\archive\movies_metadata.csv"
@@ -218,6 +223,8 @@ for path, name in [(movies_path, "movies_metadata.csv"),
 
 print()
 
+# ============ ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ РЕКОМЕНДАЦИЙ ============
+
 system = None
 try:
     system = MovieRecommendationSystem(movies_path, keywords_path)
@@ -227,14 +234,23 @@ except Exception as e:
     traceback.print_exc()
     print()
 
-# Инициализация предсказателя доходов
+# ============ ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ РЕГРЕССИИ (Прогноз доходов) ============
+
+# Предсказатель доходов (оригинальная модель - Gradient Boosting)
 revenue_predictor = None
 model_file = 'revenue_model.pkl'
 
-print("=" * 60)
-print("💰 Инициализация предсказателя доходов")
-print("=" * 60 + "\n")
+# Предсказатель доходов (новая модель - Decision Tree)
+revenue_predictor_tree = None
+model_tree_file = 'revenue_model_tree.pkl'
 
+print("=" * 70)
+print("💰 ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ ПРОГНОЗА ДОХОДОВ")
+print("=" * 70 + "\n")
+
+# Gradient Boosting модель
+print("📌 Модель 1: Gradient Boosting Regressor (оригинальная)")
+print("-" * 70)
 try:
     if os.path.exists(model_file):
         print(f"📂 Найдена сохраненная модель: {model_file}")
@@ -246,58 +262,98 @@ try:
         metrics = revenue_predictor.train_model()
         revenue_predictor.save_model(model_file)
 
-    print("✅ Предсказатель доходов инициализирован!\n")
+    print("✅ Gradient Boosting модель инициализирована!\n")
 except Exception as e:
-    print(f"❌ ОШИБКА при инициализации предсказателя: {e}")
+    print(f"❌ ОШИБКА при инициализации Gradient Boosting: {e}")
     traceback.print_exc()
     revenue_predictor = None
     print()
 
-# Инициализация классификатора фильмов
+# Decision Tree модель
+print("📌 Модель 2: Decision Tree Regressor (новая)")
+print("-" * 70)
+try:
+    if os.path.exists(model_tree_file):
+        print(f"📂 Найдена сохраненная модель: {model_tree_file}")
+        revenue_predictor_tree = RevenuePredictorTree(movies_path, credits_path)
+        revenue_predictor_tree.load_model(model_tree_file)
+    else:
+        print(f"🔨 Обученная модель не найдена. Обучаем новую...\n")
+        revenue_predictor_tree = RevenuePredictorTree(movies_path, credits_path)
+        metrics = revenue_predictor_tree.train_model()
+        revenue_predictor_tree.save_model(model_tree_file)
+
+    print("✅ Decision Tree модель инициализирована!\n")
+except Exception as e:
+    print(f"❌ ОШИБКА при инициализации Decision Tree: {e}")
+    traceback.print_exc()
+    revenue_predictor_tree = None
+    print()
+
+# ============ ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ КЛАССИФИКАЦИИ (Успешность фильма) ============
+
+# Классификатор фильмов (оригинальная модель - Logistic Regression и k-NN)
 movie_classifier = None
 logistic_model_file = 'logistic_model.pkl'
 knn_model_file = 'knn_model.pkl'
 
-print("=" * 60)
-print("🎬 Инициализация классификатора фильмов")
-print("=" * 60 + "\n")
+# Классификатор фильмов (новая модель - Decision Tree)
+movie_classifier_tree = None
+tree_classifier_file = 'movie_classifier_tree.pkl'
 
+print("=" * 70)
+print("🎬 ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ КЛАССИФИКАЦИИ")
+print("=" * 70 + "\n")
+
+# Logistic Regression и k-NN модели
+print("📌 Модель 1: Логистическая регрессия + k-NN (оригинальные)")
+print("-" * 70)
 try:
-    # Создаем экземпляр классификатора
-    movie_classifier = MovieClassifier(movies_path, credits_path)
-
-    # Проверяем наличие сохраненных моделей
     if os.path.exists(logistic_model_file) and os.path.exists(knn_model_file):
-        print(f"📂 Найдены сохраненные модели классификации")
-        print(f"   📁 {logistic_model_file}")
-        print(f"   📁 {knn_model_file}")
-        try:
-            movie_classifier.load_models(logistic_model_file, knn_model_file)
-            print("✅ Модели успешно загружены!\n")
-        except Exception as load_error:
-            print(f"⚠️ Ошибка при загрузке моделей: {load_error}")
-            print(f"🔨 Переобучаем модели...\n")
-            metrics = movie_classifier.train_models()
-            movie_classifier.save_models(logistic_model_file, knn_model_file)
+        print(f"📂 Найдены сохраненные модели")
+        movie_classifier = MovieClassifier(movies_path, credits_path)
+        movie_classifier.load_models(logistic_model_file, knn_model_file)
     else:
         print(f"🔨 Обученные модели не найдены. Обучаем новые...\n")
+        movie_classifier = MovieClassifier(movies_path, credits_path)
         metrics = movie_classifier.train_models()
         movie_classifier.save_models(logistic_model_file, knn_model_file)
 
-    print("✅ Классификатор фильмов инициализирован!\n")
+    print("✅ Логистическая регрессия + k-NN инициализированы!\n")
 except Exception as e:
-    print(f"❌ ОШИБКА при инициализации классификатора: {e}")
+    print(f"❌ ОШИБКА при инициализации LR+kNN: {e}")
     traceback.print_exc()
     movie_classifier = None
     print()
 
-print("=" * 60)
+# Decision Tree классификатор
+print("📌 Модель 2: Decision Tree Classifier (новая)")
+print("-" * 70)
+try:
+    if os.path.exists(tree_classifier_file):
+        print(f"📂 Найдена сохраненная модель: {tree_classifier_file}")
+        movie_classifier_tree = MovieClassifierTree(movies_path, credits_path)
+        movie_classifier_tree.load_model(tree_classifier_file)
+    else:
+        print(f"🔨 Обученная модель не найдена. Обучаем новую...\n")
+        movie_classifier_tree = MovieClassifierTree(movies_path, credits_path)
+        metrics = movie_classifier_tree.train_model()
+        movie_classifier_tree.save_model(tree_classifier_file)
+
+    print("✅ Decision Tree модель инициализирована!\n")
+except Exception as e:
+    print(f"❌ ОШИБКА при инициализации Decision Tree: {e}")
+    traceback.print_exc()
+    movie_classifier_tree = None
+    print()
+
+print("=" * 70)
 print("🚀 ПРИЛОЖЕНИЕ ГОТОВО К РАБОТЕ")
-print("=" * 60)
+print("=" * 70)
 print("\n📍 Откройте браузер: http://127.0.0.1:5000\n")
 
 
-# ============ МАРШРУТЫ ============
+# ============ МАРШРУТЫ API ============
 
 @app.route('/')
 def index():
@@ -307,7 +363,7 @@ def index():
 
 @app.route('/api/search', methods=['GET'])
 def search_suggestions():
-    """API для поиска подсказок"""
+    """API для поиска подсказок при вводе названия фильма"""
     try:
         query = request.args.get('q', '').strip()
 
@@ -321,7 +377,7 @@ def search_suggestions():
         if len(query) < 1:
             return jsonify({'suggestions': []})
 
-        print(f"🔍 Поиск: '{query}'")
+        print(f"🔍 Поиск подсказок: '{query}'")
         suggestions = system.get_search_suggestions(query)
         print(f"   → найдено {len(suggestions)} подсказок")
 
@@ -338,7 +394,7 @@ def search_suggestions():
 
 @app.route('/api/recommendations', methods=['POST'])
 def get_recommendations():
-    """API для получения рекомендаций"""
+    """API для получения рекомендаций похожих фильмов"""
     try:
         data = request.json
         movie_title = data.get('movie_title', '').strip()
@@ -383,25 +439,35 @@ def get_recommendations():
 
 @app.route('/api/predict-revenue', methods=['POST'])
 def predict_revenue_api():
-    """API для предсказания дохода по названию фильма"""
+    """API для предсказания дохода фильма с выбором модели (Gradient Boosting или Decision Tree)"""
 
     try:
-        if not revenue_predictor:
-            return jsonify({
-                'error': 'Revenue predictor not loaded'
-            }), 500
-
         data = request.json
         movie_title = data.get('movie_title', '').strip()
+        model_type = data.get('model_type', 'gradient_boosting')  # 'gradient_boosting' или 'tree'
 
         if not movie_title:
             return jsonify({
                 'error': 'Movie title is required'
             }), 400
 
-        print(f"💰 Прогноз дохода для: {movie_title}")
+        print(f"💰 Прогноз дохода для: {movie_title} (модель: {model_type})")
 
-        result = revenue_predictor.predict_by_title(movie_title)
+        # Выбираем модель
+        if model_type == 'tree':
+            if not revenue_predictor_tree:
+                return jsonify({
+                    'error': 'Revenue predictor (Tree) not loaded'
+                }), 500
+            predictor = revenue_predictor_tree
+        else:  # gradient_boosting
+            if not revenue_predictor:
+                return jsonify({
+                    'error': 'Revenue predictor (Gradient Boosting) not loaded'
+                }), 500
+            predictor = revenue_predictor
+
+        result = predictor.predict_by_title(movie_title)
 
         if result is None:
             suggestions = system.get_search_suggestions(movie_title) if system else []
@@ -411,7 +477,7 @@ def predict_revenue_api():
                 'suggestions': suggestions
             }), 404
 
-        # ROI
+        # Расчет ROI
         roi = (
             ((result['predicted_revenue'] / result['budget']) - 1) * 100
             if result['budget'] > 0 else 0
@@ -436,11 +502,11 @@ def predict_revenue_api():
             'vote_count': result['vote_count'],
 
             # МЕТРИКИ МОДЕЛИ
-            'model_metrics': revenue_predictor.metrics
+            'model_metrics': predictor.metrics,
+            'model_type': model_type
         }
 
         print(f"   ✅ Прогноз: ${result['predicted_revenue']:,.0f}")
-        print(f"   📈 MSE: {revenue_predictor.metrics['mse']:,.0f}")
 
         return jsonify(response_data)
 
@@ -455,47 +521,51 @@ def predict_revenue_api():
 
 @app.route('/api/classify-movie', methods=['POST'])
 def classify_movie_api():
-    """API для классификации фильма (успешный или нет)"""
+    """API для классификации фильма (успешный или нет) с выбором модели"""
 
     try:
-        if not movie_classifier:
-            return jsonify({
-                'error': 'Movie classifier not loaded'
-            }), 500
-
         data = request.json
         movie_title = data.get('movie_title', '').strip()
-        use_model = data.get('model', 'knn').lower()  # 'knn' или 'logistic'
+        model_type = data.get('model_type', 'lr_knn')  # 'lr_knn' или 'tree'
+        use_model = data.get('model', 'knn')  # для lr_knn: 'knn' или 'logistic'
 
         if not movie_title:
             return jsonify({
                 'error': 'Movie title is required'
             }), 400
 
-        # Валидация модели
-        if use_model not in ['knn', 'logistic']:
-            use_model = 'knn'
-            print(f"⚠️ Неизвестная модель, используется knn по умолчанию")
+        print(f"🎬 Классификация фильма: {movie_title} (тип: {model_type})")
 
-        print(f"🎬 Классификация фильма: '{movie_title}' (модель: {use_model})")
+        # Выбираем модель
+        if model_type == 'tree':
+            if not movie_classifier_tree:
+                return jsonify({
+                    'error': 'Movie classifier (Tree) not loaded'
+                }), 500
 
-        # Вызываем метод классификации
-        result = movie_classifier.classify_movie(movie_title, use_model)
+            result = movie_classifier_tree.classify_movie(movie_title)
+            metrics = movie_classifier_tree.metrics
+            model_used = 'Decision Tree'
+        else:  # lr_knn
+            if not movie_classifier:
+                return jsonify({
+                    'error': 'Movie classifier (LR+kNN) not loaded'
+                }), 500
+
+            if use_model not in ['knn', 'logistic']:
+                use_model = 'knn'
+
+            result = movie_classifier.classify_movie(movie_title, use_model)
+            metrics = movie_classifier.metrics_logistic if use_model == 'logistic' else movie_classifier.metrics_knn
+            model_used = use_model
 
         if result is None:
             suggestions = system.get_search_suggestions(movie_title) if system else []
-            print(f"   ⚠️ Фильм не найден в датасете")
 
             return jsonify({
                 'error': 'Movie not found in dataset',
                 'suggestions': suggestions
             }), 404
-
-        # Выбираем правильные метрики в зависимости от модели
-        model_metrics = (
-            movie_classifier.metrics_logistic if use_model == 'logistic'
-            else movie_classifier.metrics_knn
-        )
 
         response_data = {
             'movie': {
@@ -512,24 +582,17 @@ def classify_movie_api():
             'classification': {
                 'is_successful': result['is_successful'],
                 'is_successful_text': result['is_successful_text'],
-                'probability_successful': result['probability_successful'],
-                'probability_unsuccessful': result['probability_unsuccessful'],
-                'model_used': result['model_used']
+                'probability_successful': result.get('probability_successful'),
+                'probability_unsuccessful': result.get('probability_unsuccessful'),
+                'model_used': model_used
             },
-            'model_metrics': model_metrics
+            'model_metrics': metrics,
+            'model_type': model_type
         }
 
         print(f"   ✅ Результат: {result['is_successful_text']}")
-        if result['probability_successful'] is not None:
-            print(f"   📊 Вероятность успешности: {result['probability_successful']:.2%}")
 
         return jsonify(response_data)
-
-    except ValueError as ve:
-        print(f"❌ ОШИБКА ЗНАЧЕНИЯ в /api/classify-movie: {ve}")
-        return jsonify({
-            'error': str(ve)
-        }), 400
 
     except Exception as e:
         print(f"❌ ОШИБКА в /api/classify-movie: {e}")
@@ -542,11 +605,13 @@ def classify_movie_api():
 
 @app.errorhandler(404)
 def not_found(error):
+    """Обработка ошибки 404"""
     return jsonify({'error': 'Not found'}), 404
 
 
 @app.errorhandler(500)
 def internal_error(error):
+    """Обработка ошибки 500"""
     print(f"❌ ОШИБКА 500: {error}")
     traceback.print_exc()
     return jsonify({'error': 'Internal server error'}), 500
@@ -555,7 +620,16 @@ def internal_error(error):
 # ============ ЗАПУСК ============
 
 if __name__ == '__main__':
-    print("\n" + "=" * 60)
-    print("🌐 Запуск сервера Flask...")
-    print("=" * 60 + "\n")
+    print("\n" + "=" * 70)
+    print("🌐 ЗАПУСК СЕРВЕРА FLASK")
+    print("=" * 70 + "\n")
+
+    print("📌 Доступные маршруты:")
+    print("   GET  / - Главная страница")
+    print("   GET  /api/search - Поиск подсказок по названию фильма")
+    print("   POST /api/recommendations - Получение рекомендаций")
+    print("   POST /api/predict-revenue - Прогноз доходов (Gradient Boosting или Decision Tree)")
+    print("   POST /api/classify-movie - Классификация успешности (LR+kNN или Decision Tree)")
+    print()
+
     app.run(debug=True, host='0.0.0.0', port=5000)
