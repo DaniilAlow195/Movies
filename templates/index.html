@@ -17,7 +17,7 @@
                 <h1 class="logo">
                     <i class="fas fa-film"></i> MovieMatch
                 </h1>
-                <p class="subtitle">Рекомендации фильмов, прогноз доходов и классификация успешности</p>
+                <p class="subtitle">Рекомендации фильмов, прогноз доходов и классификация успешности с ансамблевыми методами</p>
             </div>
         </header>
 
@@ -26,28 +26,31 @@
             <!-- Вкладки -->
             <div class="tabs-container">
                 <div class="tabs">
-                    <button class="tab-button active" data-tab="recommendations">
-                        <i class="fas fa-star"></i> Рекомендации
+                    <button class="tab-button active" id="classification-tab" data-tab="classification">
+                        <i class="fas fa-brain"></i> Классификация
                     </button>
-                    <button class="tab-button" data-tab="revenue-prediction">
+                    <button class="tab-button" id="revenue-tab" data-tab="revenue">
                         <i class="fas fa-chart-line"></i> Прогноз доходов
                     </button>
-                    <button class="tab-button" data-tab="classification">
-                        <i class="fas fa-brain"></i> Классификация
+                    <button class="tab-button" id="recommendations-tab" data-tab="recommendations">
+                        <i class="fas fa-star"></i> Рекомендации
                     </button>
                 </div>
             </div>
 
-            <!-- Вкладка: Рекомендации -->
-            <section id="recommendations" class="tab-content active">
-                <section class="search-section">
-                    <div class="search-container">
-                        <form id="searchForm" class="search-form">
-                            <div class="search-input-wrapper">
+            <!-- Вкладка: Классификация фильмов -->
+            <section id="classification-section" class="tab-content active">
+                <div class="prediction-container">
+                    <div class="prediction-search">
+                        <form id="classificationForm">
+                            <h2><i class="fas fa-brain"></i> Классификация успешности фильма</h2>
+                            <p class="form-description">Введите название фильма, чтобы определить его успешность</p>
+
+                            <div class="search-input-wrapper-prediction">
                                 <i class="fas fa-search search-icon"></i>
                                 <input
                                     type="text"
-                                    id="movieInput"
+                                    id="movie-input"
                                     placeholder="Введите название фильма..."
                                     class="search-input"
                                     autocomplete="off"
@@ -55,365 +58,135 @@
                                 <div id="suggestions" class="suggestions-dropdown"></div>
                             </div>
 
-                            <div class="controls">
-                                <div class="count-control">
-                                    <label for="countInput">Количество:</label>
-                                    <input
-                                        type="number"
-                                        id="countInput"
-                                        min="1"
-                                        max="50"
-                                        value="10"
-                                        class="count-input"
-                                    >
-                                </div>
-                                <button type="submit" class="search-btn">
-                                    <i class="fas fa-search"></i> Поиск
-                                </button>
+                            <div class="model-selector">
+                                <label for="model-type">Выберите модель классификации:</label>
+                                <select id="model-type" class="model-select">
+                                    <option value="ensemble">🌲 Ансамбли (Random Forest + Gradient Boosting)</option>
+                                    <option value="tree">🌳 Decision Tree (Дерево решений)</option>
+                                    <option value="lr_knn">📊 Логистическая регрессия + k-NN</option>
+                                </select>
                             </div>
+
+                            <!-- Опции для LR+kNN -->
+                            <div id="use-model-div" style="display: none;" class="model-selector">
+                                <label for="use-model">Выберите алгоритм:</label>
+                                <select id="use-model" class="model-select">
+                                    <option value="knn">k-NN (k-ближайшие соседи)</option>
+                                    <option value="logistic">Логистическая регрессия</option>
+                                </select>
+                            </div>
+
+                            <!-- Опции для Ensemble -->
+                            <div id="ensemble-model-div" style="display: none;" class="model-selector">
+                                <label for="ensemble-model">Выберите ансамблевый метод:</label>
+                                <select id="ensemble-model" class="model-select">
+                                    <option value="random_forest">🌲 Random Forest (Случайный лес)</option>
+                                    <option value="gradient_boosting">⬆️ Gradient Boosting (Градиентный бустинг)</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" id="classify-btn" class="predict-btn">
+                                <i class="fas fa-magic"></i> Классифицировать
+                            </button>
                         </form>
                     </div>
-                </section>
 
-                <div id="loading" class="loading hidden">
-                    <div class="spinner"></div>
-                    <p>Поиск похожих фильмов...</p>
+                    <div class="loading hidden">
+                        <div class="spinner"></div>
+                        <p>Анализ фильма...</p>
+                    </div>
+
+                    <div id="classification-result" class="prediction-result"></div>
                 </div>
-
-                <div id="error" class="error-message hidden"></div>
-
-                <section id="results" class="results-section hidden">
-                    <h2 class="results-title">
-                        <i class="fas fa-star"></i> Рекомендации
-                    </h2>
-                    <div id="recommendationsList" class="recommendations-grid"></div>
-                </section>
-
-                <section id="empty-state" class="empty-state">
-                    <i class="fas fa-clapperboard"></i>
-                    <h2>Начните поиск</h2>
-                    <p>Введите название любимого фильма, чтобы получить рекомендации</p>
-                </section>
             </section>
 
             <!-- Вкладка: Прогноз доходов -->
-            <section id="revenue-prediction" class="tab-content">
+            <section id="revenue-section" class="tab-content" style="display: none;">
                 <div class="prediction-container">
                     <div class="prediction-search">
-                        <form id="predictionForm">
-                            <h2>Предсказание дохода фильма</h2>
+                        <form id="revenueForm">
+                            <h2><i class="fas fa-chart-line"></i> Предсказание дохода фильма</h2>
                             <p class="form-description">Введите название фильма, чтобы предсказать его потенциальный доход</p>
 
                             <div class="search-input-wrapper-prediction">
                                 <i class="fas fa-search search-icon"></i>
                                 <input
                                     type="text"
-                                    id="predictionMovieInput"
+                                    id="revenue-movie-input"
                                     placeholder="Введите название фильма..."
                                     class="search-input"
                                     autocomplete="off"
                                 >
-                                <div id="predictionSuggestions" class="suggestions-dropdown"></div>
+                                <div id="revenue-suggestions" class="suggestions-dropdown"></div>
                             </div>
 
                             <div class="model-selector">
-                                <label for="revenueModelSelect">Выберите модель:</label>
-                                <select id="revenueModelSelect" class="model-select">
+                                <label for="revenue-model-type">Выберите модель регрессии:</label>
+                                <select id="revenue-model-type" class="model-select">
                                     <option value="gradient_boosting">Gradient Boosting (оригинальная)</option>
                                     <option value="tree">Decision Tree (дерево решений)</option>
                                 </select>
                             </div>
 
-                            <button type="submit" class="predict-btn">
+                            <button type="submit" id="revenue-btn" class="predict-btn">
                                 <i class="fas fa-calculator"></i> Прогнозировать доход
                             </button>
                         </form>
                     </div>
 
-                    <div id="predictionLoading" class="loading hidden">
-                        <div class="spinner"></div>
-                        <p>Анализ данных...</p>
-                    </div>
-
-                    <div id="predictionError" class="error-message hidden"></div>
-
-                    <!-- Результаты прогноза -->
-                    <div id="predictionResult" class="prediction-result hidden">
-                        <div class="result-header">
-                            <h2 id="resultTitle">Результат прогноза</h2>
-                            <p id="resultSubtitle" class="result-subtitle"></p>
-                        </div>
-
-                        <div class="result-grid">
-                            <div class="result-card">
-                                <div class="result-icon">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Бюджет</label>
-                                    <div class="result-value" id="budgetValue">$0</div>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="result-icon primary">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Предсказанный доход</label>
-                                    <div class="result-value" id="predictedRevenue">$0</div>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="result-icon secondary">
-                                    <i class="fas fa-percent"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>ROI (Возврат инвестиций)</label>
-                                    <div class="result-value" id="roiValue">0%</div>
-                                </div>
-                            </div>
-                            <div class="result-card">
-                                <div class="result-icon tertiary">
-                                    <i class="fas fa-brain"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>RMSE модели</label>
-                                    <div class="result-value" id="mseValue">0</div>
-                                </div>
-                            </div>
-                            <div class="result-card">
-                                <div class="result-icon">
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Оценка</label>
-                                    <div class="result-value" id="voteValue">0/10</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="movie-details">
-                            <div class="details-row">
-                                <span class="detail-label">Жанр:</span>
-                                <span class="detail-value" id="genreValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Год выпуска:</span>
-                                <span class="detail-value" id="yearValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Продолжительность:</span>
-                                <span class="detail-value" id="runtimeValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Актеров в кадре:</span>
-                                <span class="detail-value" id="castValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Голосов:</span>
-                                <span class="detail-value" id="voteCountValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Популярность:</span>
-                                <span class="detail-value" id="popularityValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Фактический доход:</span>
-                                <span class="detail-value" id="actualRevenueValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Модель:</span>
-                                <span class="detail-value" id="modelTypeValue">-</span>
-                            </div>
-                        </div>
-
-                        <div class="result-chart">
-                            <canvas id="revenueChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div id="empty-prediction" class="empty-state">
-                        <i class="fas fa-coins"></i>
-                        <h2>Прогноз доходов</h2>
-                        <p>Введите название фильма, чтобы узнать его потенциальный доход</p>
-                    </div>
+                    <div id="revenue-result" class="prediction-result"></div>
                 </div>
             </section>
 
-            <!-- Вкладка: Классификация -->
-            <section id="classification" class="tab-content">
-                <div class="classification-container">
-                    <div class="classification-search">
-                        <form id="classificationForm">
-                            <h2>Классификация успешности фильма</h2>
-                            <p class="form-description">Введите название фильма, чтобы определить его успешность/популярность</p>
-
-                            <div class="search-input-wrapper-prediction">
+            <!-- Вкладка: Рекомендации -->
+            <section id="recommendations-section" class="tab-content" style="display: none;">
+                <section class="search-section">
+                    <div class="search-container">
+                        <form id="recommendationsForm">
+                            <h2><i class="fas fa-star"></i> Рекомендации похожих фильмов</h2>
+                            <div class="search-input-wrapper">
                                 <i class="fas fa-search search-icon"></i>
                                 <input
                                     type="text"
-                                    id="classificationMovieInput"
+                                    id="recommendations-movie-input"
                                     placeholder="Введите название фильма..."
                                     class="search-input"
                                     autocomplete="off"
                                 >
-                                <div id="classificationSuggestions" class="suggestions-dropdown"></div>
+                                <div id="recommendations-suggestions" class="suggestions-dropdown"></div>
                             </div>
 
-                            <div class="model-selector">
-                                <label for="classificationModelSelect">Выберите модель:</label>
-                                <select id="classificationModelSelect" class="model-select">
-                                    <option value="lr_knn">Логистическая регрессия + k-NN (оригинальные)</option>
-                                    <option value="tree">Decision Tree (дерево решений)</option>
-                                </select>
+                            <div class="controls">
+                                <div class="count-control">
+                                    <label for="n-recommendations">Количество:</label>
+                                    <input
+                                        type="number"
+                                        id="n-recommendations"
+                                        min="1"
+                                        max="50"
+                                        value="10"
+                                        class="count-input"
+                                    >
+                                </div>
+                                <button type="submit" id="recommendations-btn" class="search-btn">
+                                    <i class="fas fa-search"></i> Найти рекомендации
+                                </button>
                             </div>
-
-                            <div class="model-selector" id="subModelSelector" style="display: none;">
-                                <label for="modelSelect">Выберите подмодель (для LR+kNN):</label>
-                                <select id="modelSelect" class="model-select">
-                                    <option value="knn">k-NN (точность: высокая)</option>
-                                    <option value="logistic">Логистическая регрессия (интерпретируемость: высокая)</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="classify-btn">
-                                <i class="fas fa-magic"></i> Классифицировать
-                            </button>
                         </form>
                     </div>
+                </section>
 
-                    <div id="classificationLoading" class="loading hidden">
-                        <div class="spinner"></div>
-                        <p>Анализ фильма...</p>
-                    </div>
-
-                    <div id="classificationError" class="error-message hidden"></div>
-
-                    <!-- Результаты классификации -->
-                    <div id="classificationResult" class="classification-result hidden">
-                        <div class="result-header">
-                            <h2 id="classResultTitle">Результат классификации</h2>
-                            <p id="classResultSubtitle" class="result-subtitle"></p>
-                        </div>
-
-                        <div class="classification-badge">
-                            <div id="classificationBadge" class="badge"></div>
-                        </div>
-
-                        <div class="result-grid">
-                            <div class="result-card">
-                                <div class="result-icon">
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Рейтинг (голоса)</label>
-                                    <div class="result-value" id="classVoteValue">0/10</div>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="result-icon">
-                                    <i class="fas fa-fire"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Популярность</label>
-                                    <div class="result-value" id="classPopularityValue">0</div>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="result-icon primary">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Количество голосов</label>
-                                    <div class="result-value" id="classVoteCountValue">0</div>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="result-icon secondary">
-                                    <i class="fas fa-mask"></i>
-                                </div>
-                                <div class="result-content">
-                                    <label>Актеров</label>
-                                    <div class="result-value" id="classCastValue">0</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="classification-details">
-                            <div class="details-row">
-                                <span class="detail-label">Жанр:</span>
-                                <span class="detail-value" id="classGenreValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Год выпуска:</span>
-                                <span class="detail-value" id="classYearValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Продолжительность:</span>
-                                <span class="detail-value" id="classRuntimeValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Бюджет:</span>
-                                <span class="detail-value" id="classBudgetValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Использованная модель:</span>
-                                <span class="detail-value" id="classModelValue">-</span>
-                            </div>
-                            <div class="details-row">
-                                <span class="detail-label">Вероятность успеха (классификатор):</span>
-                                <span class="detail-value" id="classProbabilityValue">-</span>
-                            </div>
-                        </div>
-
-                        <div class="model-metrics">
-                            <h3>📊 Метрики модели</h3>
-                            <div class="metrics-grid">
-                                <div class="metric-item">
-                                    <span class="metric-label">Точность (Accuracy)</span>
-                                    <span class="metric-value" id="metricAccuracy">-</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Precision</span>
-                                    <span class="metric-value" id="metricPrecision">-</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Recall</span>
-                                    <span class="metric-value" id="metricRecall">-</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">F1-score</span>
-                                    <span class="metric-value" id="metricF1">-</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">ROC AUC</span>
-                                    <span class="metric-value" id="metricROC">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="empty-classification" class="empty-state">
-                        <i class="fas fa-magic"></i>
-                        <h2>Классификация успешности</h2>
-                        <p>Введите название фильма, чтобы узнать, будет ли он успешным</p>
-                    </div>
-                </div>
+                <div id="recommendations-result" class="prediction-result"></div>
             </section>
         </main>
 
-        <!-- Футер -->
+        <!-- Подвал -->
         <footer class="footer">
-            <p>🎬 MovieMatch © 2024 | Система рекомендации фильмов, прогноза доходов и классификации успешности с использованием деревьев решений</p>
+            <p>🎬 MovieMatch © 2026 | Анализ фильмов с использованием машинного обучения</p>
+            <p>Модели: Random Forest, Gradient Boosting, Logistic Regression, k-NN, Decision Tree, SVM</p>
         </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
