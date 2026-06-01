@@ -411,8 +411,12 @@ class EnsembleMovieClassifier:
         print(f"{'Метод опорных векторов':<25} | {accuracy_svm:>8.3f}")
         print(f"{'k-NN (k=5)':<25} | {accuracy_knn:>8.3f}")
         print(f"{'Дерево классификации':<25} | {accuracy_tree:>8.3f}")
-        print(f"{'Random Forest':<25} | {self.metrics_rf[\"accuracy\"]:>8.3f}")
-        print(f"{'Gradient Boosting':<25} | {self.metrics_gb[\"accuracy\"]:>8.3f}")
+        
+        # Fixed: Using single quotes instead of escaped double quotes
+        rf_acc = self.metrics_rf['accuracy']
+        gb_acc = self.metrics_gb['accuracy']
+        print(f"{'Random Forest':<25} | {rf_acc:>8.3f}")
+        print(f"{'Gradient Boosting':<25} | {gb_acc:>8.3f}")
         
         # Определяем лучшую модель
         accuracies = {
