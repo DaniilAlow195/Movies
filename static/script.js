@@ -36,6 +36,7 @@ const emptyClassification = document.getElementById('empty-classification');
 const classificationModelSelect = document.getElementById('classificationModelSelect');
 const subModelSelector = document.getElementById('subModelSelector');
 const modelSelect = document.getElementById('modelSelect');
+const ensembleModelSelect = document.getElementById('ensembleModelSelect');
 
 // Переменные
 let debounceTimer;
@@ -139,6 +140,7 @@ async function fetchSuggestions(query) {
         console.error('❌ Ошибка при получении подсказок:', err);
     }
 }
+
 /**
  * Отображение подсказок
  */
@@ -568,15 +570,41 @@ function drawRevenueChart(budget, predicted, actual) {
 // ============ КЛАССИФИКАЦИЯ ФИЛЬМОВ ============
 
 /**
- * Переключение видимости подмодели для LR+kNN и показ селектора для Ensemble
+ * Переключение видимости подмодели для LR+kNN и селектора для Ensemble
  */
 function handleClassificationModelChange(e) {
     const modelType = e.target.value;
+
     if (modelType === 'lr_knn') {
+        // Показываем селектор для выбора между kNN и Logistic Regression
         subModelSelector.style.display = 'block';
+        if (modelSelect) {
+            modelSelect.style.display = 'block';
+        }
+        if (ensembleModelSelect) {
+            ensembleModelSelect.style.display = 'none';
+        }
+    } else if (modelType === 'ensemble') {
+        // Показываем селектор для выбора между Random Forest и Gradient Boosting
+        subModelSelector.style.display = 'block';
+        if (modelSelect) {
+            modelSelect.style.display = 'none';
+        }
+        if (ensembleModelSelect) {
+            ensembleModelSelect.style.display = 'block';
+        }
     } else {
+        // Для Decision Tree и других - скрываем подселекторы
         subModelSelector.style.display = 'none';
+        if (modelSelect) {
+            modelSelect.style.display = 'none';
+        }
+        if (ensembleModelSelect) {
+            ensembleModelSelect.style.display = 'none';
+        }
     }
+
+    console.log(`🔄 Тип классификации изменён на: ${modelType}`);
 }
 
 /**
@@ -645,7 +673,6 @@ async function handleClassificationSubmit(e) {
 
     const movieTitle = classificationMovieInput.value.trim();
     const modelType = classificationModelSelect.value;
-    const useModel = modelSelect.value;
 
     if (!movieTitle) {
         showClassificationError('❌ Пожалуйста, введите название фильма');
@@ -653,13 +680,13 @@ async function handleClassificationSubmit(e) {
     }
 
     console.log(`🎬 Классификация фильма: ${movieTitle} (тип: ${modelType})`);
-    await fetchClassification(movieTitle, modelType, useModel);
+    await fetchClassification(movieTitle, modelType);
 }
 
 /**
  * Получение классификации
  */
-async function fetchClassification(movieTitle, modelType, useModel) {
+async function fetchClassification(movieTitle, modelType) {
     showClassificationLoading(true);
     hideClassificationError();
     hideClassificationResult();
@@ -667,13 +694,19 @@ async function fetchClassification(movieTitle, modelType, useModel) {
     try {
         const requestData = {
             movie_title: movieTitle,
-            model_type: modelType,
-            model: useModel
+            model_type: modelType
         };
 
-        // Если это ensemble модель, добавляем параметр ансамбля
-        if (modelType === 'ensemble') {
-            requestData.ensemble_model = useModel === 'logistic' ? 'gradient_boosting' : 'random_forest';
+        // Для LR+kNN добавляем параметр выбранного алгоритма (knn или logistic)
+        if (modelType === 'lr_knn' && modelSelect) {
+            requestData.model = modelSelect.value;
+            console.log(`   📊 Используется алгоритм: ${modelSelect.value}`);
+        }
+
+        // Для ансамблевых моделей добавляем параметр выбранной ансамблевой модели
+        if (modelType === 'ensemble' && ensembleModelSelect) {
+            requestData.ensemble_model = ensembleModelSelect.value;
+            console.log(`   🌲 Используется ансамблевая модель: ${ensembleModelSelect.value}`);
         }
 
         const response = await fetch('/api/classify-movie', {
@@ -932,5 +965,9 @@ document.head.appendChild(animationStyle);
 console.log('%c🎬 MovieMatch приложение загружено!', 'color: #FF6B6B; font-size: 16px; font-weight: bold;');
 console.log('%cВкладка "Рекомендации" - получайте похожие фильмы', 'color: #4ECDC4; font-size: 12px;');
 console.log('%cВкладка "Прогноз доходов" - предсказывайте кассовые сборы (Gradient Boosting + Decision Tree)', 'color: #FFE66D; font-size: 12px;');
-console.log('%cВкладка "Классификация" - определяйте успешность фильмов (LR+kNN + Decision Tree + Ensemble Models)', 'color: #FF6B9D; font-size: 12px;');
-    
+console.log('%cВкладка "Классификация" - определяйте успешность фильмов', 'color: #FF6B9D; font-size: 12px;');
+console.log('%cДоступные модели классификации:', 'color: #FF6B9D; font-size: 12px;');
+console.log('%c  🌲 Random Forest (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
+console.log('%c  ⬆️ Gradient Boosting (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
+console.log('%c  📊 Logistic Regression + k-NN', 'color: #FFE66D; font-size: 11px;');
+console.log('%c  🌳 Decision Tree', 'color: #FF6B6B; font-size: 11px;');

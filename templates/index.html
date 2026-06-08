@@ -6,6 +6,7 @@
     <title>🎬 MovieMatch - Рекомендации, прогноз доходов и классификация</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="background"></div>
@@ -17,7 +18,7 @@
                 <h1 class="logo">
                     <i class="fas fa-film"></i> MovieMatch
                 </h1>
-                <p class="subtitle">Рекомендации фильмов, прогноз доходов и классификация успешности с ансамблевыми методами</p>
+                <p class="subtitle">Рекомендации фильмов, прогноз доходов и классификация успешности с использованием машинного обучения и ансамблевых методов</p>
             </div>
         </header>
 
@@ -26,31 +27,31 @@
             <!-- Вкладки -->
             <div class="tabs-container">
                 <div class="tabs">
-                    <button class="tab-button active" id="classification-tab" data-tab="classification">
-                        <i class="fas fa-brain"></i> Классификация
+                    <button class="tab-button active" data-tab="recommendations">
+                        <i class="fas fa-star"></i> Рекомендации
                     </button>
-                    <button class="tab-button" id="revenue-tab" data-tab="revenue">
+                    <button class="tab-button" data-tab="prediction">
                         <i class="fas fa-chart-line"></i> Прогноз доходов
                     </button>
-                    <button class="tab-button" id="recommendations-tab" data-tab="recommendations">
-                        <i class="fas fa-star"></i> Рекомендации
+                    <button class="tab-button" data-tab="classification">
+                        <i class="fas fa-brain"></i> Классификация
                     </button>
                 </div>
             </div>
 
-            <!-- Вкладка: Классификация фильмов -->
-            <section id="classification-section" class="tab-content active">
-                <div class="prediction-container">
-                    <div class="prediction-search">
-                        <form id="classificationForm">
-                            <h2><i class="fas fa-brain"></i> Классификация успешности фильма</h2>
-                            <p class="form-description">Введите название фильма, чтобы определить его успешность</p>
+            <!-- ============ ВКЛАДКА: РЕКОМЕНДАЦИИ ============ -->
+            <section id="recommendations" class="tab-content active">
+                <div class="search-section">
+                    <div class="search-container">
+                        <form id="searchForm">
+                            <h2><i class="fas fa-star"></i> Рекомендации похожих фильмов</h2>
+                            <p class="form-description">Найдите фильмы, похожие на интересующий вас фильм</p>
 
-                            <div class="search-input-wrapper-prediction">
+                            <div class="search-input-wrapper">
                                 <i class="fas fa-search search-icon"></i>
                                 <input
                                     type="text"
-                                    id="movie-input"
+                                    id="movieInput"
                                     placeholder="Введите название фильма..."
                                     class="search-input"
                                     autocomplete="off"
@@ -58,132 +59,346 @@
                                 <div id="suggestions" class="suggestions-dropdown"></div>
                             </div>
 
-                            <div class="model-selector">
-                                <label for="model-type">Выберите модель классификации:</label>
-                                <select id="model-type" class="model-select">
-                                    <option value="ensemble">🌲 Ансамбли (Random Forest + Gradient Boosting)</option>
-                                    <option value="tree">🌳 Decision Tree (Дерево решений)</option>
-                                    <option value="lr_knn">📊 Логистическая регрессия + k-NN</option>
-                                </select>
-                            </div>
-
-                            <!-- Опции для LR+kNN -->
-                            <div id="use-model-div" style="display: none;" class="model-selector">
-                                <label for="use-model">Выберите алгоритм:</label>
-                                <select id="use-model" class="model-select">
-                                    <option value="knn">k-NN (k-ближайшие соседи)</option>
-                                    <option value="logistic">Логистическая регрессия</option>
-                                </select>
-                            </div>
-
-                            <!-- Опции для Ensemble -->
-                            <div id="ensemble-model-div" style="display: none;" class="model-selector">
-                                <label for="ensemble-model">Выберите ансамблевый метод:</label>
-                                <select id="ensemble-model" class="model-select">
-                                    <option value="random_forest">🌲 Random Forest (Случайный лес)</option>
-                                    <option value="gradient_boosting">⬆️ Gradient Boosting (Градиентный бустинг)</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" id="classify-btn" class="predict-btn">
-                                <i class="fas fa-magic"></i> Классифицировать
-                            </button>
-                        </form>
-                    </div>
-
-                    <div class="loading hidden">
-                        <div class="spinner"></div>
-                        <p>Анализ фильма...</p>
-                    </div>
-
-                    <div id="classification-result" class="prediction-result"></div>
-                </div>
-            </section>
-
-            <!-- Вкладка: Прогноз доходов -->
-            <section id="revenue-section" class="tab-content" style="display: none;">
-                <div class="prediction-container">
-                    <div class="prediction-search">
-                        <form id="revenueForm">
-                            <h2><i class="fas fa-chart-line"></i> Предсказание дохода фильма</h2>
-                            <p class="form-description">Введите название фильма, чтобы предсказать его потенциальный доход</p>
-
-                            <div class="search-input-wrapper-prediction">
-                                <i class="fas fa-search search-icon"></i>
-                                <input
-                                    type="text"
-                                    id="revenue-movie-input"
-                                    placeholder="Введите название фильма..."
-                                    class="search-input"
-                                    autocomplete="off"
-                                >
-                                <div id="revenue-suggestions" class="suggestions-dropdown"></div>
-                            </div>
-
-                            <div class="model-selector">
-                                <label for="revenue-model-type">Выберите модель регрессии:</label>
-                                <select id="revenue-model-type" class="model-select">
-                                    <option value="gradient_boosting">Gradient Boosting (оригинальная)</option>
-                                    <option value="tree">Decision Tree (дерево решений)</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" id="revenue-btn" class="predict-btn">
-                                <i class="fas fa-calculator"></i> Прогнозировать доход
-                            </button>
-                        </form>
-                    </div>
-
-                    <div id="revenue-result" class="prediction-result"></div>
-                </div>
-            </section>
-
-            <!-- Вкладка: Рекомендации -->
-            <section id="recommendations-section" class="tab-content" style="display: none;">
-                <section class="search-section">
-                    <div class="search-container">
-                        <form id="recommendationsForm">
-                            <h2><i class="fas fa-star"></i> Рекомендации похожих фильмов</h2>
-                            <div class="search-input-wrapper">
-                                <i class="fas fa-search search-icon"></i>
-                                <input
-                                    type="text"
-                                    id="recommendations-movie-input"
-                                    placeholder="Введите название фильма..."
-                                    class="search-input"
-                                    autocomplete="off"
-                                >
-                                <div id="recommendations-suggestions" class="suggestions-dropdown"></div>
-                            </div>
-
                             <div class="controls">
                                 <div class="count-control">
-                                    <label for="n-recommendations">Количество:</label>
+                                    <label for="countInput">Количество рекомендаций:</label>
                                     <input
                                         type="number"
-                                        id="n-recommendations"
+                                        id="countInput"
                                         min="1"
                                         max="50"
                                         value="10"
                                         class="count-input"
                                     >
                                 </div>
-                                <button type="submit" id="recommendations-btn" class="search-btn">
+                                <button type="submit" class="search-btn">
                                     <i class="fas fa-search"></i> Найти рекомендации
                                 </button>
                             </div>
                         </form>
                     </div>
-                </section>
+                </div>
 
-                <div id="recommendations-result" class="prediction-result"></div>
+                <div id="loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Поиск похожих фильмов...</p>
+                </div>
+
+                <div id="error" class="error-message hidden"></div>
+
+                <div id="empty-state" class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>Введите название фильма, чтобы получить рекомендации</p>
+                </div>
+
+                <div id="results" class="results hidden">
+                    <div id="recommendationsList" class="movies-grid"></div>
+                </div>
+            </section>
+
+            <!-- ============ ВКЛАДКА: ПРОГНОЗ ДОХОДОВ ============ -->
+            <section id="prediction" class="tab-content">
+                <div class="search-section">
+                    <div class="search-container">
+                        <form id="predictionForm">
+                            <h2><i class="fas fa-chart-line"></i> Прогноз доходов фильма</h2>
+                            <p class="form-description">Предсказайте потенциальные кассовые сборы фильма</p>
+
+                            <div class="search-input-wrapper-prediction">
+                                <i class="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    id="predictionMovieInput"
+                                    placeholder="Введите название фильма..."
+                                    class="search-input"
+                                    autocomplete="off"
+                                >
+                                <div id="predictionSuggestions" class="suggestions-dropdown"></div>
+                            </div>
+
+                            <div class="model-selector">
+                                <label for="revenueModelSelect">Выберите модель прогноза:</label>
+                                <select id="revenueModelSelect" class="model-select">
+                                    <option value="gradient_boosting">💡 Gradient Boosting (оригинальная)</option>
+                                    <option value="tree">🌳 Decision Tree (дерево решений)</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="search-btn">
+                                <i class="fas fa-calculator"></i> Прогнозировать доход
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="predictionLoading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Прогнозирование доходов...</p>
+                </div>
+
+                <div id="predictionError" class="error-message hidden"></div>
+
+                <div id="empty-prediction" class="empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <p>Введите название фильма, чтобы получить прогноз доходов</p>
+                </div>
+
+                <div id="predictionResult" class="results hidden">
+                    <div class="result-container">
+                        <div class="result-header">
+                            <div>
+                                <h3 id="resultTitle"></h3>
+                                <p id="resultSubtitle" class="subtitle"></p>
+                            </div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-card">
+                                <h4>Финансовые показатели</h4>
+                                <div class="metric-row">
+                                    <span>Бюджет:</span>
+                                    <strong id="budgetValue">$0</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Прогноз доходов:</span>
+                                    <strong id="predictedRevenue">$0</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Фактический доход:</span>
+                                    <strong id="actualRevenueValue">-</strong>
+                                </div>
+                                <div class="metric-row highlight">
+                                    <span>ROI (прогноз):</span>
+                                    <strong id="roiValue">0%</strong>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h4>Информация о фильме</h4>
+                                <div class="metric-row">
+                                    <span>Жанр:</span>
+                                    <strong id="genreValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Год выхода:</span>
+                                    <strong id="yearValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Рейтинг:</span>
+                                    <strong id="voteValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Популярность:</span>
+                                    <strong id="popularityValue">-</strong>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h4>Детали</h4>
+                                <div class="metric-row">
+                                    <span>Продолжительность:</span>
+                                    <strong id="runtimeValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Количество актёров:</span>
+                                    <strong id="castValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Количество оценок:</span>
+                                    <strong id="voteCountValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Модель:</span>
+                                    <strong id="modelTypeValue">-</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+
+                        <div class="metrics-container">
+                            <h4>Метрики модели</h4>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span>RMSE:</span>
+                                    <strong id="mseValue">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ ВКЛАДКА: КЛАССИФИКАЦИЯ ============ -->
+            <section id="classification" class="tab-content">
+                <div class="search-section">
+                    <div class="search-container">
+                        <form id="classificationForm">
+                            <h2><i class="fas fa-brain"></i> Классификация успешности фильма</h2>
+                            <p class="form-description">Определите будет ли фильм успешным</p>
+
+                            <div class="search-input-wrapper-prediction">
+                                <i class="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    id="classificationMovieInput"
+                                    placeholder="Введите название фильма..."
+                                    class="search-input"
+                                    autocomplete="off"
+                                >
+                                <div id="classificationSuggestions" class="suggestions-dropdown"></div>
+                            </div>
+
+                            <div class="model-selector">
+                                <label for="classificationModelSelect">Выберите модель классификации:</label>
+                                <select id="classificationModelSelect" class="model-select">
+                                    <option value="ensemble">🌲 Ансамбли (Random Forest + Gradient Boosting)</option>
+                                    <option value="tree">🌳 Decision Tree (Дерево решений)</option>
+                                    <option value="lr_knn">📊 Логистическая регрессия + k-NN</option>
+                                </select>
+                            </div>
+
+                            <!-- Подселектор для LR+kNN -->
+                            <div id="subModelSelector" style="display: none;">
+                                <div class="model-selector">
+                                    <label for="modelSelect">Выберите алгоритм:</label>
+                                    <select id="modelSelect" class="model-select">
+                                        <option value="knn">🔍 k-NN (k-ближайшие соседи)</option>
+                                        <option value="logistic">📈 Логистическая регрессия</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Подселектор для Ensemble -->
+                            <div id="ensembleModelDiv" style="display: none;">
+                                <div class="model-selector">
+                                    <label for="ensembleModelSelect">Выберите ансамблевый метод:</label>
+                                    <select id="ensembleModelSelect" class="model-select">
+                                        <option value="random_forest">🌲 Random Forest (Случайный лес)</option>
+                                        <option value="gradient_boosting">⬆️ Gradient Boosting (Градиентный бустинг)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="search-btn">
+                                <i class="fas fa-magic"></i> Классифицировать
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="classificationLoading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Классификация фильма...</p>
+                </div>
+
+                <div id="classificationError" class="error-message hidden"></div>
+
+                <div id="empty-classification" class="empty-state">
+                    <i class="fas fa-brain"></i>
+                    <p>Введите название фильма, чтобы определить его успешность</p>
+                </div>
+
+                <div id="classificationResult" class="results hidden">
+                    <div class="result-container">
+                        <div class="result-header">
+                            <div>
+                                <h3 id="classResultTitle"></h3>
+                                <p id="classResultSubtitle" class="subtitle"></p>
+                            </div>
+                            <div id="classificationBadge" class="badge"></div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-card">
+                                <h4>Метрики фильма</h4>
+                                <div class="metric-row">
+                                    <span>Рейтинг:</span>
+                                    <strong id="classVoteValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Популярность:</span>
+                                    <strong id="classPopularityValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Количество оценок:</span>
+                                    <strong id="classVoteCountValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Количество актёров:</span>
+                                    <strong id="classCastValue">-</strong>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h4>Информация</h4>
+                                <div class="metric-row">
+                                    <span>Жанр:</span>
+                                    <strong id="classGenreValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Год выхода:</span>
+                                    <strong id="classYearValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Продолжительность:</span>
+                                    <strong id="classRuntimeValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Бюджет:</span>
+                                    <strong id="classBudgetValue">-</strong>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h4>Прогноз</h4>
+                                <div class="metric-row">
+                                    <span>Вероятность успеха:</span>
+                                    <strong id="classProbabilityValue">-</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Модель:</span>
+                                    <strong id="classModelValue">-</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metrics-container">
+                            <h4>Метрики модели классификации</h4>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span>Accuracy:</span>
+                                    <strong id="metricAccuracy">-</strong>
+                                </div>
+                                <div class="metric-box">
+                                    <span>Precision:</span>
+                                    <strong id="metricPrecision">-</strong>
+                                </div>
+                                <div class="metric-box">
+                                    <span>Recall:</span>
+                                    <strong id="metricRecall">-</strong>
+                                </div>
+                                <div class="metric-box">
+                                    <span>F1-Score:</span>
+                                    <strong id="metricF1">-</strong>
+                                </div>
+                                <div class="metric-box">
+                                    <span>ROC-AUC:</span>
+                                    <strong id="metricROC">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
         <!-- Подвал -->
         <footer class="footer">
             <p>🎬 MovieMatch © 2026 | Анализ фильмов с использованием машинного обучения</p>
-            <p>Модели: Random Forest, Gradient Boosting, Logistic Regression, k-NN, Decision Tree, SVM</p>
+            <p>Модели: Random Forest, Gradient Boosting, Logistic Regression, k-NN, Decision Tree</p>
         </footer>
     </div>
 
