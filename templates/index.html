@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 MovieMatch - Рекомендации, прогноз доходов и классификация</title>
+    <title>🎬 MovieMatch - Рекомендации, прогноз доходов, классификация и кластеризация</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,7 +18,7 @@
                 <h1 class="logo">
                     <i class="fas fa-film"></i> MovieMatch
                 </h1>
-                <p class="subtitle">Рекомендации фильмов, прогноз доходов и классификация успешности с использованием машинного обучения и ансамблевых методов</p>
+                <p class="subtitle">Рекомендации фильмов, прогноз доходов, классификация успешности и кластеризация</p>
             </div>
         </header>
 
@@ -35,6 +35,9 @@
                     </button>
                     <button class="tab-button" data-tab="classification">
                         <i class="fas fa-brain"></i> Классификация
+                    </button>
+                    <button class="tab-button" data-tab="clustering">
+                        <i class="fas fa-project-diagram"></i> Кластеризация
                     </button>
                 </div>
             </div>
@@ -393,12 +396,58 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ============ ВКЛАДКА: КЛАСТЕРИЗАЦИЯ ============ -->
+            <section id="clustering" class="tab-content">
+                <div class="search-section">
+                    <div class="search-container">
+                        <div class="clustering-info">
+                            <h2><i class="fas fa-project-diagram"></i> Кластеризация фильмов</h2>
+                            <p class="form-description">Анализируйте группы похожих фильмов по различным характеристикам</p>
+                        </div>
+
+                        <div id="clusteringLoading" class="loading hidden">
+                            <div class="spinner"></div>
+                            <p>Загрузка информации о кластеризации...</p>
+                        </div>
+
+                        <div id="clusteringError" class="error-message hidden"></div>
+
+                        <div id="empty-clustering" class="empty-state">
+                            <i class="fas fa-project-diagram"></i>
+                            <p>Загрузка данных кластеризации...</p>
+                        </div>
+
+                        <div id="clusteringResult" class="results hidden">
+                            <!-- Иерархическая кластеризация -->
+                            <div class="clustering-section">
+                                <h3><i class="fas fa-sitemap"></i> Иерархическая кластеризация (Ward's Method)</h3>
+                                <div id="hierarchicalMetrics" class="metrics-container"></div>
+                                <div id="hierarchicalClusters" class="clusters-grid"></div>
+                            </div>
+
+                            <!-- k-means кластеризация -->
+                            <div class="clustering-section">
+                                <h3><i class="fas fa-cube"></i> k-Means кластеризация</h3>
+                                <div id="kmeansMetrics" class="metrics-container"></div>
+                                <div id="kmeansClusters" class="clusters-grid"></div>
+                            </div>
+
+                            <!-- DBSCAN кластеризация -->
+                            <div class="clustering-section">
+                                <h3><i class="fas fa-database"></i> DBSCAN кластеризация</h3>
+                                <div id="dbscanMetrics" class="metrics-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- Подвал -->
         <footer class="footer">
             <p>🎬 MovieMatch © 2026 | Анализ фильмов с использованием машинного обучения</p>
-            <p>Модели: Random Forest, Gradient Boosting, Logistic Regression, k-NN, Decision Tree</p>
+            <p>Модели: Random Forest, Gradient Boosting, Logistic Regression, k-NN, Decision Tree, Hierarchical Clustering, k-Means, DBSCAN</p>
         </footer>
     </div>
 
