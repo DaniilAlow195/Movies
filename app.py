@@ -17,6 +17,8 @@ from ensemble_movie_classifier import EnsembleMovieClassifier
 from revenue_predictor_tree import RevenuePredictorTree
 from movie_classifier_tree import MovieClassifierTree
 
+from movie_clustering import MovieClustering
+
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -233,6 +235,37 @@ try:
 except Exception as e:
     print(f"❌ ОШИБКА при загрузке системы: {e}")
     traceback.print_exc()
+    print()
+
+# ============ ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ КЛАСТЕРИЗАЦИИ ============
+
+clustering_system = None
+clustering_file = 'movie_clustering_model.pkl'
+
+print("=" * 70)
+print("🔍 ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ КЛАСТЕРИЗАЦИИ")
+print("=" * 70 + "\n")
+
+try:
+    if os.path.exists(clustering_file):
+        print(f"📂 Найдена сохраненная модель: {clustering_file}")
+        clustering_system = MovieClustering(movies_path, credits_path)
+        clustering_system.load_clustering(clustering_file)
+    else:
+        print(f"🔨 Обученная модель не найдена. Обучаем новую...\n")
+        clustering_system = MovieClustering(movies_path, credits_path)
+        clustering_system.prepare_data()
+        clustering_system.standardize_data()
+        clustering_system.hierarchical_clustering(n_clusters=5)
+        clustering_system.kmeans_clustering(n_clusters=5)
+        clustering_system.dbscan_clustering(eps=1.5, min_samples=5)
+        clustering_system.save_clustering(clustering_file)
+
+    print("✅ Система кластеризации инициализирована!\n")
+except Exception as e:
+    print(f"❌ ОШИБКА при инициализации кластеризации: {e}")
+    traceback.print_exc()
+    clustering_system = None
     print()
 
 # ============ ИНИЦИАЛИЗАЦИЯ МОДЕЛЕЙ РЕГРЕССИИ (Прогноз доходов) ============
@@ -649,12 +682,85 @@ def classify_movie_api():
         }), 500
 
 
+@app.route('/api/clustering-info', methods=['GET'])
+def clustering_info():
+    """API для получения информации о результатах кластеризации"""
+    try:
+        if not clustering_system:
+            return jsonify({'error': 'Clustering system not loaded'}), 500
+
+        info = {
+            'hierarchical': clustering_system.hierarchical_metrics,
+            'kmeans': clustering_system.kmeans_metrics,
+            'dbscan': clustering_system.dbscan_metrics
+        }
+
+        return jsonify(info)
+
+    except Exception as e:
+        print(f"❌ ОШИБКА в /api/clustering-info: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/clustering/hierarchical/<int:cluster_id>', methods=['GET'])
+def get_hierarchical_cluster(cluster_id):
+    """API для получения информации о кластере иерархической кластеризации"""
+    try:
+        if not clustering_system or clustering_system.hierarchical_labels is None:
+            return jsonify({'error': 'Clustering system not loaded or hierarchical clustering not performed'}), 500
+
+        movies = clustering_system.get_cluster_movies(clustering_system.hierarchical_labels, cluster_id)
+
+        if not movies:
+            return jsonify({'error': f'Cluster {cluster_id} not found'}), 404
+
+        return jsonify({
+            'cluster_id': cluster_id,
+            'method': 'hierarchical',
+            'size': len(movies),
+            'movies': movies[:20]  # Возвращаем первые 20 фильмов
+        })
+
+    except Exception as e:
+        print(f"❌ ОШИБКА в /api/clustering/hierarchical: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/clustering/kmeans/<int:n_clusters>/<int:cluster_id>', methods=['GET'])
+def get_kmeans_cluster(n_clusters, cluster_id):
+    """API для получения информации о кластере k-means"""
+    try:
+        if not clustering_system or n_clusters not in clustering_system.kmeans_labels:
+            return jsonify({'error': 'Clustering system not loaded or k-means clustering not performed'}), 500
+
+        movies = clustering_system.get_cluster_movies(clustering_system.kmeans_labels[n_clusters], cluster_id)
+
+        if not movies:
+            return jsonify({'error': f'Cluster {cluster_id} not found'}), 404
+
+        return jsonify({
+            'cluster_id': cluster_id,
+            'method': 'kmeans',
+            'n_clusters': n_clusters,
+            'size': len(movies),
+            'movies': movies[:20]
+        })
+
+    except Exception as e:
+        print(f"❌ ОШИБКА в /api/clustering/kmeans: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/models-info', methods=['GET'])
 def models_info():
     """API для получения информации о загруженных моделях"""
     try:
         models_loaded = {
             'recommendation_system': system is not None,
+            'clustering_system': clustering_system is not None,
             'revenue_predictor_gb': revenue_predictor is not None,
             'revenue_predictor_tree': revenue_predictor_tree is not None,
             'movie_classifier_lr_knn': movie_classifier is not None,
@@ -714,6 +820,9 @@ if __name__ == '__main__':
     print("   POST /api/recommendations - Получение рекомендаций")
     print("   POST /api/predict-revenue - Прогноз доходов (Gradient Boosting или Decision Tree)")
     print("   POST /api/classify-movie - Классификация успешности (LR+kNN, Decision Tree или Ensemble)")
+    print("   GET  /api/clustering-info - Информация о кластеризации")
+    print("   GET  /api/clustering/hierarchical/<cluster_id> - Информация о кластере иерархической кластеризации")
+    print("   GET  /api/clustering/kmeans/<n_clusters>/<cluster_id> - Информация о кластере k-means")
     print("   GET  /api/models-info - Информация о загруженных моделях")
     print()
 
