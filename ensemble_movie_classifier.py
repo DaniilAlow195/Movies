@@ -412,7 +412,6 @@ class EnsembleMovieClassifier:
         print(f"{'k-NN (k=5)':<25} | {accuracy_knn:>8.3f}")
         print(f"{'Дерево классификации':<25} | {accuracy_tree:>8.3f}")
 
-        # Fixed: Using single quotes instead of escaped double quotes
         rf_acc = self.metrics_rf['accuracy']
         gb_acc = self.metrics_gb['accuracy']
         print(f"{'Random Forest':<25} | {rf_acc:>8.3f}")
@@ -444,6 +443,108 @@ class EnsembleMovieClassifier:
             'decision_tree': self.metrics_tree,
             'comparison': accuracies,
             'best_model': best_model
+        }
+
+    def find_movie_by_title(self, title):
+        """Поиск фильма в датасете по названию"""
+        title_lower = title.lower().strip()
+
+        # Точный поиск
+        exact_match = self.movies_df[self.movies_df['title'].str.lower() == title_lower]
+        if len(exact_match) > 0:
+            return exact_match.iloc[0]
+
+        # Частичный поиск
+        partial_match = self.movies_df[
+            self.movies_df['title'].str.lower().str.contains(title_lower, na=False, regex=False)
+        ]
+
+        if len(partial_match) > 0:
+            return partial_match.iloc[0]
+
+        return None
+
+    def classify_movie_ensemble(self, movie_title, ensemble_model='random_forest'):
+        """Классификация фильма с использованием ансамблевой модели"""
+        if self.random_forest_model is None or self.gradient_boosting_model is None:
+            raise ValueError("Ансамблевые модели не обучены")
+
+        # Ищем фильм в датасете
+        movie = self.find_movie_by_title(movie_title)
+
+        if movie is None:
+            return None
+
+        # Извлекаем признаки
+        budget = float(movie['budget']) if pd.notna(movie['budget']) else 0
+        vote_average = float(movie['vote_average']) if pd.notna(movie['vote_average']) else 0
+        vote_count = float(movie['vote_count']) if pd.notna(movie['vote_count']) else 0
+        runtime = float(movie['runtime']) if pd.notna(movie['runtime']) else 0
+        popularity = float(movie['popularity']) if pd.notna(movie['popularity']) else 0
+        main_genre = self._extract_main_genre(movie['genres'])
+        original_language = str(movie['original_language']) if pd.notna(movie['original_language']) else 'en'
+
+        # Получаем количество актеров
+        cast_count = self._extract_cast_count(movie['id'])
+
+        # Подготавливаем признаки
+        features = pd.DataFrame({
+            'vote_average': [vote_average],
+            'vote_count': [vote_count],
+            'runtime': [runtime],
+            'popularity': [popularity],
+            'cast_count': [cast_count],
+            'budget': [budget],
+            'log_vote_count': [np.log1p(vote_count)],
+            'log_popularity': [np.log1p(popularity)],
+            'log_budget': [np.log1p(budget)],
+            'vote_per_cast': [vote_count / cast_count if cast_count > 0 else 0],
+            'budget_per_runtime': [budget / runtime if runtime > 0 else 0]
+        })
+
+        # Кодируем категориальные переменные
+        if main_genre in self.label_encoders['main_genre'].classes_:
+            genre_code = self.label_encoders['main_genre'].transform([main_genre])[0]
+        else:
+            genre_code = self.label_encoders['main_genre'].transform(['Unknown'])[0]
+        features['main_genre_encoded'] = genre_code
+
+        if original_language in self.label_encoders['original_language'].classes_:
+            lang_code = self.label_encoders['original_language'].transform([original_language])[0]
+        else:
+            lang_code = self.label_encoders['original_language'].transform(['en'])[0]
+        features['original_language_encoded'] = lang_code
+
+        # Упорядочиваем
+        features = features[self.feature_columns]
+
+        # Выбираем модель
+        if ensemble_model == 'random_forest':
+            prediction = self.random_forest_model.predict(features)[0]
+            probabilities = self.random_forest_model.predict_proba(features)[0]
+            metrics = self.metrics_rf
+            model_name = 'Random Forest'
+        else:  # gradient_boosting
+            prediction = self.gradient_boosting_model.predict(features)[0]
+            probabilities = self.gradient_boosting_model.predict_proba(features)[0]
+            metrics = self.metrics_gb
+            model_name = 'Gradient Boosting'
+
+        return {
+            'title': movie['title'],
+            'release_date': str(movie['release_date'])[:4] if pd.notna(movie['release_date']) else 'N/A',
+            'genres': self._extract_main_genre(movie['genres']),
+            'vote_average': vote_average,
+            'vote_count': vote_count,
+            'popularity': popularity,
+            'runtime': runtime,
+            'budget': budget,
+            'cast_count': cast_count,
+            'is_successful': int(prediction),
+            'is_successful_text': 'Успешный фильм' if prediction == 1 else 'Менее успешный',
+            'probability_successful': float(probabilities[1]) if len(probabilities) > 1 else 0,
+            'probability_unsuccessful': float(probabilities[0]) if len(probabilities) > 0 else 0,
+            'model_used': model_name
         }
 
     def get_feature_importances(self):

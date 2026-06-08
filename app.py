@@ -555,7 +555,8 @@ def classify_movie_api():
         movie_title = data.get('movie_title', '').strip()
         model_type = data.get('model_type', 'lr_knn')  # 'lr_knn', 'tree', или 'ensemble'
         use_model = data.get('model', 'knn')  # для lr_knn: 'knn' или 'logistic'
-        ensemble_model = data.get('ensemble_model', 'random_forest')  # для ensemble: 'random_forest' или 'gradient_boosting'
+        ensemble_model = data.get('ensemble_model',
+                                  'random_forest')  # для ensemble: 'random_forest' или 'gradient_boosting'
 
         if not movie_title:
             return jsonify({
@@ -571,20 +572,17 @@ def classify_movie_api():
                     'error': 'Ensemble classifier not loaded'
                 }), 500
 
-            # Используем логику из оригинального классификатора для получения признаков
-            temp_classifier = MovieClassifier(movies_path, credits_path)
-            result = temp_classifier.classify_movie(movie_title, use_model='knn')
-            
+            # ИСПОЛЬЗУЕМ МЕТОД АНСАМБЛЕВОГО КЛАССИФИКАТОРА
+            result = ensemble_classifier.classify_movie_ensemble(movie_title, ensemble_model)
+
             if result is None:
                 suggestions = system.get_search_suggestions(movie_title) if system else []
                 return jsonify({
                     'error': 'Movie not found in dataset',
                     'suggestions': suggestions
                 }), 404
-            
+
             metrics = ensemble_classifier.metrics_rf if ensemble_model == 'random_forest' else ensemble_classifier.metrics_gb
-            result['model_used'] = ensemble_model
-            model_type = 'ensemble'
 
         elif model_type == 'tree':
             if not movie_classifier_tree:

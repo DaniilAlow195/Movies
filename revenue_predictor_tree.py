@@ -394,3 +394,27 @@ class RevenuePredictorTree:
         })
 
         print(f"✅ Модель дерева регрессии загружена: {filepath}")
+# ============ ПРИМЕР ИСПОЛЬЗОВАНИЯ ============
+if __name__ == "__main__":
+    # Путь к данным
+    movies_path = 'movies_metadata.csv'
+    credits_path = 'credits.csv'
+
+    # Инициализируем предиктор
+    predictor = RevenuePredictorTree(movies_path, credits_path)
+
+    # Обучаем модель
+    metrics = predictor.train_model(test_size=0.2, random_state=42, max_depth=4)
+
+    # Экспортируем дерево
+    predictor.export_tree_to_dot('revenue_tree.dot')
+
+    # Сохраняем модель
+    predictor.save_model('revenue_model_tree.pkl')
+
+    # Пример предсказания по названию фильма
+    result = predictor.predict_by_title('The Dark Knight')
+    if result:
+        print(f"\n🎬 Результат предсказания для: {result['title']}")
+        print(f"   Предсказанный доход: ${result['predicted_revenue']:,.0f}")
+        print(f"   Фактический доход: ${result['actual_revenue']:,.0f}")
