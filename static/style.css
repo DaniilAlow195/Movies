@@ -427,6 +427,14 @@ body {
 }
 
 /* ============ РЕЗУЛЬТАТЫ ============ */
+.results {
+    display: block;
+}
+
+.results.hidden {
+    display: none !important;
+}
+
 .results-section {
     margin-bottom: 40px;
 }
@@ -448,6 +456,12 @@ body {
 }
 
 .recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.movies-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
@@ -585,51 +599,11 @@ body {
     font-size: 1.1rem;
 }
 
-/* ============ ПРОГНОЗ ДОХОДОВ ============ */
-.prediction-container {
+/* ============ РЕЗУЛЬТАТЫ ПРОГНОЗА И КЛАССИФИКАЦИИ ============ */
+.result-container {
     display: flex;
     flex-direction: column;
     gap: 30px;
-}
-
-.prediction-search {
-    background: var(--card-bg);
-    padding: 30px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.prediction-search h2 {
-    font-size: 1.8rem;
-    margin-bottom: 10px;
-    color: var(--text-primary);
-}
-
-.form-description {
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    font-size: 1rem;
-}
-
-#predictionForm,
-#classificationForm {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-/* ============ РЕЗУЛЬТАТЫ ПРОГНОЗА ============ */
-.prediction-result {
-    background: var(--card-bg);
-    padding: 30px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.prediction-result.hidden {
-    display: none;
 }
 
 .result-header {
@@ -638,20 +612,20 @@ body {
     border-bottom: 2px solid var(--border-color);
 }
 
-.result-header h2 {
+.result-header h3 {
     font-size: 1.8rem;
     color: var(--text-primary);
     margin-bottom: 5px;
 }
 
-.result-subtitle {
+.result-header .subtitle {
     color: var(--text-secondary);
     font-size: 1rem;
 }
 
 .result-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -661,53 +635,52 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
-    display: flex;
-    gap: 15px;
-    align-items: flex-start;
 }
 
-.result-icon {
-    width: 50px;
-    height: 50px;
-    background: rgba(78, 205, 196, 0.2);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: var(--secondary-color);
-    flex-shrink: 0;
-}
-
-.result-icon.primary {
-    background: rgba(255, 107, 107, 0.2);
-    color: var(--primary-color);
-}
-
-.result-icon.secondary {
-    background: rgba(255, 230, 109, 0.2);
-    color: var(--accent-color);
-}
-
-.result-icon.tertiary {
-    background: rgba(46, 204, 113, 0.2);
-    color: var(--success-color);
-}
-
-.result-content label {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    margin-bottom: 5px;
-}
-
-.result-value {
-    font-size: 1.5rem;
-    font-weight: 700;
+.result-card h4 {
+    font-size: 1.1rem;
     color: var(--text-primary);
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
 }
 
-.movie-details {
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(58, 68, 82, 0.3);
+}
+
+.metric-row:last-child {
+    border-bottom: none;
+}
+
+.metric-row span:first-child {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.metric-row strong {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.metric-row.highlight {
+    background: rgba(255, 107, 107, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+.metric-row.highlight strong {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.chart-container {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -715,76 +688,49 @@ body {
     margin-bottom: 30px;
 }
 
-.details-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.details-row:last-child {
-    border-bottom: none;
-}
-
-.detail-label {
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.detail-value {
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.result-chart {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-}
-
-.result-chart canvas {
+.chart-container canvas {
     max-height: 400px;
 }
 
-/* ============ КЛАССИФИКАЦИЯ ============ */
-.classification-container {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.classification-search {
-    background: var(--card-bg);
-    padding: 30px;
-    border-radius: 20px;
+.metrics-container {
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 25px;
 }
 
-.classification-search h2 {
-    font-size: 1.8rem;
-    margin-bottom: 10px;
+.metrics-container h4 {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
     color: var(--text-primary);
 }
 
-.classification-result {
-    background: var(--card-bg);
-    padding: 30px;
-    border-radius: 20px;
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.metric-box {
+    background: rgba(78, 205, 196, 0.05);
     border: 1px solid var(--border-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.classification-result.hidden {
-    display: none;
-}
-
-/* ============ КЛАССИФИКАЦИОННЫЙ ЗНАЧОК ============ */
-.classification-badge {
+    border-radius: 10px;
+    padding: 15px;
     text-align: center;
-    margin: 30px 0;
+}
+
+.metric-box span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.metric-box strong {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--secondary-color);
 }
 
 .badge {
@@ -793,73 +739,8 @@ body {
     border-radius: 20px;
     font-size: 2rem;
     font-weight: 700;
-    min-width: 300px;
-    margin: 0 auto;
+    margin: 20px auto;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.badge.successful {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(46, 204, 113, 0.1) 100%);
-    border: 2px solid var(--success-color);
-    color: var(--success-color);
-}
-
-.badge.unsuccessful {
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2) 0%, rgba(231, 76, 60, 0.1) 100%);
-    border: 2px solid var(--warning-color);
-    color: var(--warning-color);
-}
-
-/* ============ ДЕТАЛИ КЛАССИФИКАЦИИ ============ */
-.classification-details {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 30px;
-}
-
-/* ============ МЕТРИКИ МОДЕЛИ ============ */
-.model-metrics {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 30px;
-}
-
-.model-metrics h3 {
-    font-size: 1.3rem;
-    margin-bottom: 20px;
-    color: var(--text-primary);
-}
-
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
-
-.metric-item {
-    background: rgba(78, 205, 196, 0.05);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-}
-
-.metric-label {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    margin-bottom: 8px;
-}
-
-.metric-value {
-    display: block;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--secondary-color);
 }
 
 /* ============ ФУТЕР ============ */
@@ -912,7 +793,12 @@ body {
         width: 100%;
     }
 
-    .recommendations-grid {
+    .recommendations-grid,
+    .movies-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .result-grid {
         grid-template-columns: 1fr;
     }
 
@@ -931,26 +817,6 @@ body {
 
     .tab-button i {
         display: none;
-    }
-
-    .result-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .prediction-search {
-        padding: 20px;
-    }
-
-    .prediction-result {
-        padding: 20px;
-    }
-
-    .classification-search {
-        padding: 20px;
-    }
-
-    .classification-result {
-        padding: 20px;
     }
 
     .model-selector {
@@ -1003,22 +869,7 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .result-header h2 {
-        font-size: 1.3rem;
-    }
-
-    .details-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-
     .metrics-grid {
         grid-template-columns: 1fr;
-    }
-
-    .badge {
-        padding: 20px 30px;
-        font-size: 1.2rem;
     }
 }
