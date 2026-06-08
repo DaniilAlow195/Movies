@@ -37,6 +37,18 @@ const classificationModelSelect = document.getElementById('classificationModelSe
 const subModelSelector = document.getElementById('subModelSelector');
 const modelSelect = document.getElementById('modelSelect');
 const ensembleModelSelect = document.getElementById('ensembleModelSelect');
+const ensembleModelDiv = document.getElementById('ensembleModelDiv');
+
+// Элементы кластеризации
+const clusteringLoading = document.getElementById('clusteringLoading');
+const clusteringError = document.getElementById('clusteringError');
+const clusteringResult = document.getElementById('clusteringResult');
+const emptyClustering = document.getElementById('empty-clustering');
+const hierarchicalMetrics = document.getElementById('hierarchicalMetrics');
+const hierarchicalClusters = document.getElementById('hierarchicalClusters');
+const kmeansMetrics = document.getElementById('kmeansMetrics');
+const kmeansClusters = document.getElementById('kmeansClusters');
+const dbscanMetrics = document.getElementById('dbscanMetrics');
 
 // Переменные
 let debounceTimer;
@@ -46,6 +58,7 @@ let revenueChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
+    loadClusteringData();
 });
 
 function initializeEventListeners() {
@@ -85,6 +98,11 @@ function handleTabClick(e) {
     document.getElementById(tabName).classList.add('active');
 
     console.log(`📑 Переключение на вкладку: ${tabName}`);
+
+    // Загружаем данные кластеризации при открытии вкладки
+    if (tabName === 'clustering') {
+        loadClusteringData();
+    }
 }
 
 // ============ РЕКОМЕНДАЦИИ ФИЛЬМОВ ============
@@ -476,7 +494,7 @@ function drawRevenueChart(budget, predicted, actual) {
 
     const datasets = [
         {
-            label: 'Бюджет',
+            label: 'Бюд��ет',
             data: [budget, 0, 0],
             backgroundColor: 'rgba(78, 205, 196, 0.7)',
             borderColor: 'rgba(78, 205, 196, 1)',
@@ -576,28 +594,13 @@ function handleClassificationModelChange(e) {
 
     if (modelType === 'lr_knn') {
         subModelSelector.style.display = 'block';
-        if (modelSelect) {
-            modelSelect.style.display = 'block';
-        }
-        if (ensembleModelSelect) {
-            ensembleModelSelect.style.display = 'none';
-        }
+        ensembleModelDiv.style.display = 'none';
     } else if (modelType === 'ensemble') {
-        subModelSelector.style.display = 'block';
-        if (modelSelect) {
-            modelSelect.style.display = 'none';
-        }
-        if (ensembleModelSelect) {
-            ensembleModelSelect.style.display = 'block';
-        }
+        subModelSelector.style.display = 'none';
+        ensembleModelDiv.style.display = 'block';
     } else {
         subModelSelector.style.display = 'none';
-        if (modelSelect) {
-            modelSelect.style.display = 'none';
-        }
-        if (ensembleModelSelect) {
-            ensembleModelSelect.style.display = 'none';
-        }
+        ensembleModelDiv.style.display = 'none';
     }
 
     console.log(`🔄 Тип классификации изменён на: ${modelType}`);
@@ -807,6 +810,136 @@ function displayClassificationResult(data) {
     showClassificationResult();
 }
 
+// ============ КЛАСТЕРИЗАЦИЯ ============
+
+/**
+ * Загрузка данных кластеризации
+ */
+async function loadClusteringData() {
+    showClusteringLoading(true);
+    hideClusteringError();
+    hideClusteringResult();
+
+    try {
+        console.log('🔍 Загрузка информации о кластеризации...');
+
+        const response = await fetch('/api/clustering-info');
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error(`❌ Ошибка при получении информации о кластеризации: ${data.error}`);
+            showClusteringError(data.error || 'Ошибка при загрузке данных кластеризации');
+            showClusteringLoading(false);
+            return;
+        }
+
+        console.log(`✅ Получена информация о кластеризации`);
+        displayClusteringInfo(data);
+        showClusteringLoading(false);
+    } catch (err) {
+        console.error('❌ Ошибка при получении кластеризации:', err);
+        showClusteringError('❌ Ошибка при получении информации о кластеризации');
+        showClusteringLoading(false);
+    }
+}
+
+/**
+ * Отображение информации о кластеризации
+ */
+function displayClusteringInfo(data) {
+    // Иерархическая кластеризация
+    if (data.hierarchical) {
+        const hier = data.hierarchical;
+        hierarchicalMetrics.innerHTML = `
+            <h4>Метрики иерархической кластеризации</h4>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span>Количество кластеров:</span>
+                    <strong>${hier.n_clusters}</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Silhouette Score:</span>
+                    <strong>${hier.silhouette_score.toFixed(3)}</strong>
+                </div>
+            </div>
+        `;
+
+        const clusterDist = hier.cluster_distribution;
+        hierarchicalClusters.innerHTML = `
+            <h4>Распределение по кластерам</h4>
+            <div class="cluster-info">
+                ${Object.entries(clusterDist).map(([clusterId, count]) => `
+                    <div class="cluster-stat">
+                        <span>Кластер ${clusterId}:</span>
+                        <strong>${count} фильмов (${(count/Object.values(clusterDist).reduce((a,b)=>a+b)*100).toFixed(1)}%)</strong>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // k-means кластеризация
+    if (data.kmeans && Object.keys(data.kmeans).length > 0) {
+        const kmeans = data.kmeans[Object.keys(data.kmeans)[0]];
+        kmeansMetrics.innerHTML = `
+            <h4>Метрики k-means кластеризации</h4>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span>Количество кластеров:</span>
+                    <strong>${kmeans.n_clusters}</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Silhouette Score:</span>
+                    <strong>${kmeans.silhouette_score.toFixed(3)}</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Inertia:</span>
+                    <strong>${formatNumber(kmeans.inertia)}</strong>
+                </div>
+            </div>
+        `;
+
+        const clusterDist = kmeans.cluster_distribution;
+        kmeansClusters.innerHTML = `
+            <h4>Распределение по кластерам</h4>
+            <div class="cluster-info">
+                ${Object.entries(clusterDist).map(([clusterId, count]) => `
+                    <div class="cluster-stat">
+                        <span>Кластер ${clusterId}:</span>
+                        <strong>${count} фильмов (${(count/Object.values(clusterDist).reduce((a,b)=>a+b)*100).toFixed(1)}%)</strong>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // DBSCAN кластеризация
+    if (data.dbscan) {
+        const dbscan = data.dbscan;
+        dbscanMetrics.innerHTML = `
+            <h4>Метрики DBSCAN кластеризации</h4>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span>Количество кластеров:</span>
+                    <strong>${dbscan.n_clusters}</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Точек шума:</span>
+                    <strong>${dbscan.n_noise}</strong>
+                </div>
+                ${dbscan.silhouette_score ? `
+                <div class="metric-box">
+                    <span>Silhouette Score:</span>
+                    <strong>${dbscan.silhouette_score.toFixed(3)}</strong>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    showClusteringResult();
+}
+
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
 
 /**
@@ -928,6 +1061,31 @@ function hideClassificationError() {
     classificationError.classList.add('hidden');
 }
 
+// ============ ФУНКЦИИ ВИДИМОСТИ (Кластеризация) ============
+
+function showClusteringLoading(show) {
+    clusteringLoading.classList.toggle('hidden', !show);
+}
+
+function showClusteringResult() {
+    clusteringResult.classList.remove('hidden');
+    emptyClustering.classList.add('hidden');
+}
+
+function hideClusteringResult() {
+    clusteringResult.classList.add('hidden');
+    emptyClustering.classList.remove('hidden');
+}
+
+function showClusteringError(message) {
+    clusteringError.textContent = `❌ ${message}`;
+    clusteringError.classList.remove('hidden');
+}
+
+function hideClusteringError() {
+    clusteringError.classList.add('hidden');
+}
+
 // ============ АНИМАЦИИ ============
 
 /**
@@ -967,10 +1125,15 @@ document.head.appendChild(animationStyle);
 
 console.log('%c🎬 MovieMatch приложение загружено!', 'color: #FF6B6B; font-size: 16px; font-weight: bold;');
 console.log('%cВкладка "Рекомендации" - получайте похожие фильмы', 'color: #4ECDC4; font-size: 12px;');
-console.log('%cВкладка "Прогноз доходов" - предсказывайте кассовые сборы (Gradient Boosting + Decision Tree)', 'color: #FFE66D; font-size: 12px;');
+console.log('%cВкладка "Прогноз доходов" - предсказывайте кассовые сборы', 'color: #FFE66D; font-size: 12px;');
 console.log('%cВкладка "Классификация" - определяйте успешность фильмов', 'color: #FF6B9D; font-size: 12px;');
+console.log('%cВкладка "Кластеризация" - анализируйте группы похожих фильмов', 'color: #FF6B9D; font-size: 12px;');
 console.log('%cДоступные модели классификации:', 'color: #FF6B9D; font-size: 12px;');
 console.log('%c  🌲 Random Forest (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
 console.log('%c  ⬆️ Gradient Boosting (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
-console.log('%c  �� Logistic Regression + k-NN', 'color: #FFE66D; font-size: 11px;');
+console.log('%c  📊 Logistic Regression + k-NN', 'color: #FFE66D; font-size: 11px;');
 console.log('%c  🌳 Decision Tree', 'color: #FF6B6B; font-size: 11px;');
+console.log('%cДоступные методы кластеризации:', 'color: #FF6B9D; font-size: 12px;');
+console.log('%c  🏗️ Иерархическая кластеризация (Ward)', 'color: #4ECDC4; font-size: 11px;');
+console.log('%c  ⭐ k-Means', 'color: #FFE66D; font-size: 11px;');
+console.log('%c  🔍 DBSCAN', 'color: #FF6B6B; font-size: 11px;');

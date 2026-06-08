@@ -101,7 +101,7 @@ class MovieClustering:
             (df['vote_average'] > 0) &
             (df['popularity'] > 0) &
             (df['runtime'] > 0)
-            ].reset_index(drop=True)
+        ].reset_index(drop=True)
 
         if len(df) == 0:
             raise ValueError("❌ Недостаточно данных для кластеризации")
@@ -207,12 +207,20 @@ class MovieClustering:
 
         print(f"\n📊 Кластеризация на {n_clusters} классов...")
 
-        # Агломеративная кластеризация
-        self.hierarchical_model = AgglomerativeClustering(
-            n_clusters=n_clusters,
-            affinity='euclidean',
-            linkage='ward'
-        )
+        # Агломеративная кластеризация - исправленная версия
+        try:
+            # Новая версия scikit-learn (0.24+)
+            self.hierarchical_model = AgglomerativeClustering(
+                n_clusters=n_clusters,
+                linkage='ward'
+            )
+        except TypeError:
+            # Старая версия scikit-learn
+            self.hierarchical_model = AgglomerativeClustering(
+                n_clusters=n_clusters,
+                affinity='euclidean',
+                linkage='ward'
+            )
 
         self.hierarchical_labels = self.hierarchical_model.fit_predict(self.data_standardized)
 
@@ -262,14 +270,27 @@ class MovieClustering:
         print(f"   Параметры: n_init={n_init}, max_iter={max_iter}")
 
         # k-means
-        kmeans = KMeans(
-            n_clusters=n_clusters,
-            init='random',
-            n_init=n_init,
-            max_iter=max_iter,
-            tol=1e-04,
-            random_state=0
-        )
+        try:
+            # Новая версия scikit-learn
+            kmeans = KMeans(
+                n_clusters=n_clusters,
+                init='random',
+                n_init=n_init,
+                max_iter=max_iter,
+                tol=1e-04,
+                random_state=0
+            )
+        except TypeError:
+            # Старая версия scikit-learn
+            kmeans = KMeans(
+                n_clusters=n_clusters,
+                init='random',
+                n_init=n_init,
+                max_iter=max_iter,
+                tol=1e-04,
+                random_state=0,
+                n_jobs=-1
+            )
 
         labels = kmeans.fit_predict(self.data_standardized)
 
