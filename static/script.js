@@ -443,9 +443,8 @@ function displayPredictionResult(data) {
 
     // Метрики модели
     if (data.model_metrics) {
-        document.getElementById('mseValue').textContent =
-            '$' + formatNumber(data.model_metrics.rmse || data.model_metrics.test_rmse);
-
+        const rmseValue = data.model_metrics.test_rmse || data.model_metrics.rmse;
+        document.getElementById('mseValue').textContent = rmseValue ? '$' + formatNumber(rmseValue) : '-';
         console.log('📈 Метрики модели:', data.model_metrics);
     }
 
@@ -576,7 +575,6 @@ function handleClassificationModelChange(e) {
     const modelType = e.target.value;
 
     if (modelType === 'lr_knn') {
-        // Показываем селектор для выбора между kNN и Logistic Regression
         subModelSelector.style.display = 'block';
         if (modelSelect) {
             modelSelect.style.display = 'block';
@@ -585,7 +583,6 @@ function handleClassificationModelChange(e) {
             ensembleModelSelect.style.display = 'none';
         }
     } else if (modelType === 'ensemble') {
-        // Показываем селектор для выбора между Random Forest и Gradient Boosting
         subModelSelector.style.display = 'block';
         if (modelSelect) {
             modelSelect.style.display = 'none';
@@ -594,7 +591,6 @@ function handleClassificationModelChange(e) {
             ensembleModelSelect.style.display = 'block';
         }
     } else {
-        // Для Decision Tree и других - скрываем подселекторы
         subModelSelector.style.display = 'none';
         if (modelSelect) {
             modelSelect.style.display = 'none';
@@ -697,13 +693,11 @@ async function fetchClassification(movieTitle, modelType) {
             model_type: modelType
         };
 
-        // Для LR+kNN добавляем параметр выбранного алгоритма (knn или logistic)
         if (modelType === 'lr_knn' && modelSelect) {
             requestData.model = modelSelect.value;
             console.log(`   📊 Используется алгоритм: ${modelSelect.value}`);
         }
 
-        // Для ансамблевых моделей добавляем параметр выбранной ансамблевой модели
         if (modelType === 'ensemble' && ensembleModelSelect) {
             requestData.ensemble_model = ensembleModelSelect.value;
             console.log(`   🌲 Используется ансамблевая модель: ${ensembleModelSelect.value}`);
@@ -787,19 +781,27 @@ function displayClassificationResult(data) {
     if (data.model_metrics) {
         const metrics = data.model_metrics;
 
-        // Для обеих типов моделей
-        document.getElementById('metricAccuracy').textContent =
-            (metrics.test_accuracy || metrics.accuracy || '-').toFixed(3);
-        document.getElementById('metricPrecision').textContent =
-            (metrics.test_precision || metrics.precision || '-').toFixed(3);
-        document.getElementById('metricRecall').textContent =
-            (metrics.test_recall || metrics.recall || '-').toFixed(3);
-        document.getElementById('metricF1').textContent =
-            (metrics.test_f1 || metrics.f1 || '-').toFixed(3);
-        document.getElementById('metricROC').textContent =
-            (metrics.test_roc_auc || metrics.roc_auc || '-').toFixed(3);
+        // Проверяем наличие метрик и форматируем их
+        const accuracy = metrics.test_accuracy || metrics.accuracy;
+        const precision = metrics.test_precision || metrics.precision;
+        const recall = metrics.test_recall || metrics.recall;
+        const f1 = metrics.test_f1 || metrics.f1;
+        const roc = metrics.test_roc_auc || metrics.roc_auc;
+
+        document.getElementById('metricAccuracy').textContent = accuracy ? parseFloat(accuracy).toFixed(3) : '-';
+        document.getElementById('metricPrecision').textContent = precision ? parseFloat(precision).toFixed(3) : '-';
+        document.getElementById('metricRecall').textContent = recall ? parseFloat(recall).toFixed(3) : '-';
+        document.getElementById('metricF1').textContent = f1 ? parseFloat(f1).toFixed(3) : '-';
+        document.getElementById('metricROC').textContent = roc ? parseFloat(roc).toFixed(3) : '-';
 
         console.log('📈 Метрики модели:', data.model_metrics);
+    } else {
+        console.warn('⚠️ Метрики модели не найдены');
+        document.getElementById('metricAccuracy').textContent = '-';
+        document.getElementById('metricPrecision').textContent = '-';
+        document.getElementById('metricRecall').textContent = '-';
+        document.getElementById('metricF1').textContent = '-';
+        document.getElementById('metricROC').textContent = '-';
     }
 
     showClassificationResult();
@@ -811,6 +813,7 @@ function displayClassificationResult(data) {
  * Форматирование числа с разделителем тысяч
  */
 function formatNumber(num) {
+    if (!num || isNaN(num)) return '0';
     return Math.round(num).toLocaleString('en-US');
 }
 
@@ -969,5 +972,5 @@ console.log('%cВкладка "Классификация" - определяй�
 console.log('%cДоступные модели классификации:', 'color: #FF6B9D; font-size: 12px;');
 console.log('%c  🌲 Random Forest (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
 console.log('%c  ⬆️ Gradient Boosting (Ансамблевая)', 'color: #4ECDC4; font-size: 11px;');
-console.log('%c  📊 Logistic Regression + k-NN', 'color: #FFE66D; font-size: 11px;');
+console.log('%c  �� Logistic Regression + k-NN', 'color: #FFE66D; font-size: 11px;');
 console.log('%c  🌳 Decision Tree', 'color: #FF6B6B; font-size: 11px;');
