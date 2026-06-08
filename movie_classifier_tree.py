@@ -263,19 +263,20 @@ class MovieClassifierTree:
         for idx, row in importances.head(5).iterrows():
             print(f"   {row['feature']}: {row['importance']:.4f}")
 
+        # ✅ СОХРАНЯЕМ ТЕСТОВЫЕ МЕТРИКИ (не тренировочные!)
         self.metrics = {
+            'accuracy': float(accuracy_test),
+            'precision': float(precision_test),
+            'recall': float(recall_test),
+            'f1': float(f1_test),
+            'roc_auc': float(roc_auc_test),
+            'confusion_matrix': confmat_test.tolist(),
+            # Для информации - храним оба набора
             'train_accuracy': float(accuracy_train),
             'train_precision': float(precision_train),
             'train_recall': float(recall_train),
             'train_f1': float(f1_train),
             'train_roc_auc': float(roc_auc_train),
-            'train_confusion_matrix': confmat_train.tolist(),
-            'test_accuracy': float(accuracy_test),
-            'test_precision': float(precision_test),
-            'test_recall': float(recall_test),
-            'test_f1': float(f1_test),
-            'test_roc_auc': float(roc_auc_test),
-            'test_confusion_matrix': confmat_test.tolist()
         }
 
         print("\n" + "=" * 60)
